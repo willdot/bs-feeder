@@ -55,7 +55,7 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 type FeedReponse struct {
-	Cursor string     `json:"cursor"`
+	//Cursor string     `json:"cursor"`
 	Feed   []FeedItme `json:"feed"`
 }
 
