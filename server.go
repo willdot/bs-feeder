@@ -1,0 +1,132 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"strconv"
+)
+
+type Feeder interface {
+	GetFeed(ctx context.Context, feed, cursor string, limit int) (*FeedReponse, error)
+}
+
+type Server struct {
+	httpsrv *http.Server
+	feeder  Feeder
+}
+
+func NewServer(port int, feeder Feeder) *Server {
+	srv := &Server{
+		feeder: feeder,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/xrpc/app.bsky.feed.getFeedSkeleton", srv.HandleGetFeedSkeleton)
+	mux.HandleFunc("/xrpc/app.bsky.feed.describeFeedGenerator", srv.HandleDescribeFeedGenerator)
+	addr := fmt.Sprintf("localhost:%d", port)
+
+	httpSrv := http.Server{
+		Addr:    addr,
+		Handler: mux,
+	}
+
+	return &Server{
+		httpsrv: &httpSrv,
+	}
+}
+
+func (s *Server) Run() {
+	err := s.httpsrv.ListenAndServe()
+	if err != nil {
+		slog.Error("listen and serve", "error", err)
+	}
+}
+
+func (s *Server) Stop(ctx context.Context) error {
+	return s.httpsrv.Shutdown(ctx)
+}
+
+type FeedReponse struct {
+	Cursor string     `json:"cursor"`
+	Feed   []FeedItme `json:"feed"`
+}
+
+type FeedItme struct {
+	Post string `json:"post"`
+}
+
+func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+
+	feed := params.Get("feed")
+	if feed == "" {
+		http.Error(w, "missing feed query param", http.StatusBadRequest)
+		return
+	}
+
+	limitStr := params.Get("limit")
+	limit := 50
+	if limitStr != "" {
+		var err error
+		limit, err = strconv.Atoi(limitStr)
+		if err != nil {
+			slog.Error("convert limit query param", "error", err)
+			http.Error(w, "invalid limit query param", http.StatusBadRequest)
+			return
+		}
+		if limit < 1 || limit > 100 {
+			limit = 50
+		}
+	}
+
+	cursor := params.Get("cursor")
+	slog.Info("cursor", "val", cursor)
+
+	// TODO: get things from DB and return it
+
+	resp, err := s.feeder.GetFeed(r.Context(), feed, cursor, limit)
+	if err != nil {
+		slog.Error("get feed", "error", err, "feed", feed)
+		http.Error(w, "error getting feed", http.StatusInternalServerError)
+		return
+	}
+
+	b, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, "failed to encode resp", http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(b)
+}
+
+type DescribeFeedResponse struct {
+	DID   string          `json:"did"`
+	Feeds []FeedRespsonse `json:"feeds"`
+}
+
+type FeedRespsonse struct {
+	URI string `json:"uri"`
+}
+
+func (s *Server) HandleDescribeFeedGenerator(w http.ResponseWriter, r *http.Request) {
+	resp := DescribeFeedResponse{
+		DID: "did:web:willdot.net",
+		Feeds: []FeedRespsonse{
+			{
+				URI: "did:plc:dadhhalkfcq3gucaq25hjqon.app.bsky.feed.generator.test",
+			},
+		},
+	}
+
+	b, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, "failed to encode resp", http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(b)
+}
