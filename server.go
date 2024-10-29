@@ -158,7 +158,6 @@ type WellKnownService struct {
 }
 
 func (s *Server) HandleWellKnown(w http.ResponseWriter, r *http.Request) {
-	return
 	resp := WellKnownResponse{
 		Context: []string{"https://www.w3.org/ns/did/v1"},
 		Id:      fmt.Sprintf("did:web:%s", s.feedHost),
