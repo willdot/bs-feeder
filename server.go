@@ -122,7 +122,7 @@ func (s *Server) HandleDescribeFeedGenerator(w http.ResponseWriter, r *http.Requ
 		DID: fmt.Sprintf("did:web:%s", s.feedHost),
 		Feeds: []FeedRespsonse{
 			{
-				URI: fmt.Sprintf("at://%s.app.bsky.feed.generator.test", s.feedDidBase),
+				URI: fmt.Sprintf("at://%s.app.bsky.feed.generator/wills-test", s.feedDidBase),
 			},
 		},
 	}
