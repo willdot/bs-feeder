@@ -30,7 +30,7 @@ func NewServer(port int, feeder Feeder, appDid, feedDidBase string) *Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/xrpc/app.bsky.feed.getFeedSkeleton", srv.HandleGetFeedSkeleton)
 	mux.HandleFunc("/xrpc/app.bsky.feed.describeFeedGenerator", srv.HandleDescribeFeedGenerator)
-	addr := fmt.Sprintf("localhost:%d", port)
+	addr := fmt.Sprintf("0.0.0.0:%d", port)
 
 	httpSrv := http.Server{
 		Addr:    addr,
