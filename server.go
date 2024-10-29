@@ -103,9 +103,12 @@ func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
 
 	b, err := json.Marshal(resp)
 	if err != nil {
+		slog.Error("marshall error", "error", err, "host", r.RemoteAddr)
 		http.Error(w, "failed to encode resp", http.StatusInternalServerError)
 		return
 	}
+
+	slog.Info("done", "body", string(b), "host", r.RemoteAddr)
 
 	w.Write(b)
 }
