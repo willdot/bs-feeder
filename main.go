@@ -25,7 +25,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	server := NewServer(3000, feeder, feedHost, feedDidBase)
+	server := NewServer(443, feeder, feedHost, feedDidBase)
 	go func() {
 		<-signals
 
