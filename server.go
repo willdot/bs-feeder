@@ -16,20 +16,21 @@ type Feeder interface {
 type Server struct {
 	httpsrv     *http.Server
 	feeder      Feeder
-	appDid      string
+	feedHost    string
 	feedDidBase string
 }
 
-func NewServer(port int, feeder Feeder, appDid, feedDidBase string) *Server {
+func NewServer(port int, feeder Feeder, feedHost, feedDidBase string) *Server {
 	srv := &Server{
 		feeder:      feeder,
-		appDid:      appDid,
+		feedHost:    feedHost,
 		feedDidBase: feedDidBase,
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/xrpc/app.bsky.feed.getFeedSkeleton", srv.HandleGetFeedSkeleton)
 	mux.HandleFunc("/xrpc/app.bsky.feed.describeFeedGenerator", srv.HandleDescribeFeedGenerator)
+	mux.HandleFunc("/.well-known/did.json", srv.HandleWellKnown)
 	addr := fmt.Sprintf("0.0.0.0:%d", port)
 
 	httpSrv := http.Server{
@@ -118,10 +119,53 @@ type FeedRespsonse struct {
 
 func (s *Server) HandleDescribeFeedGenerator(w http.ResponseWriter, r *http.Request) {
 	resp := DescribeFeedResponse{
-		DID: s.appDid,
+		DID: fmt.Sprintf("did:web:%s", s.feedHost),
 		Feeds: []FeedRespsonse{
 			{
 				URI: fmt.Sprintf("%s.app.bsky.feed.generator.test", s.feedDidBase),
+			},
+		},
+	}
+
+	b, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, "failed to encode resp", http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(b)
+}
+
+// "@context": ["https://www.w3.org/ns/did/v1"],
+//
+//	"id": FEED_DID,
+//	"service":[{
+//		"id": "#bsky_fg",
+//		"type": "BskyFeedGenerator",
+//		"serviceEndpoint": f"https://{FEED_HOSTNAME}"
+//	}]
+
+type WellKnownResponse struct {
+	Context []string           `json:"@context"`
+	Id      string             `json:"id"`
+	Service []WellKnownService `json:"service"`
+}
+
+type WellKnownService struct {
+	Id              string `json:"id"`
+	Type            string `json:"type"`
+	ServiceEndpoint string `json:"serviceEndpoint"`
+}
+
+func (s *Server) HandleWellKnown(w http.ResponseWriter, r *http.Request) {
+	resp := WellKnownResponse{
+		Context: []string{"https://www.w3.org/ns/did/v1"},
+		Id:      fmt.Sprintf("did:web:%s", s.feedHost),
+		Service: []WellKnownService{
+			WellKnownService{
+				Id:              "#bsky_fg",
+				Type:            "BskyFeedGenerator",
+				ServiceEndpoint: fmt.Sprintf("https://%s", s.feedDidBase),
 			},
 		},
 	}

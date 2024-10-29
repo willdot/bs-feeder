@@ -19,13 +19,13 @@ func main() {
 		slog.Error("FEED_DID_BASE not set")
 		os.Exit(1)
 	}
-	appDid := os.Getenv("APP_DID")
-	if appDid == "" {
-		slog.Error("APP_DID not set")
+	feedHost := os.Getenv("FEED_HOST_NAME")
+	if feedHost == "" {
+		slog.Error("FEED_HOST_NAME not set")
 		os.Exit(1)
 	}
 
-	server := NewServer(3000, feeder, appDid, feedDidBase)
+	server := NewServer(3000, feeder, feedHost, feedDidBase)
 	go func() {
 		<-signals
 
