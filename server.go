@@ -165,7 +165,7 @@ func (s *Server) HandleWellKnown(w http.ResponseWriter, r *http.Request) {
 			WellKnownService{
 				Id:              "#bsky_fg",
 				Type:            "BskyFeedGenerator",
-				ServiceEndpoint: fmt.Sprintf("https://%s", s.feedDidBase),
+				ServiceEndpoint: fmt.Sprintf("https://%s", s.feedHost),
 			},
 		},
 	}
