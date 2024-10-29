@@ -14,13 +14,17 @@ type Feeder interface {
 }
 
 type Server struct {
-	httpsrv *http.Server
-	feeder  Feeder
+	httpsrv     *http.Server
+	feeder      Feeder
+	appDid      string
+	feedDidBase string
 }
 
-func NewServer(port int, feeder Feeder) *Server {
+func NewServer(port int, feeder Feeder, appDid, feedDidBase string) *Server {
 	srv := &Server{
-		feeder: feeder,
+		feeder:      feeder,
+		appDid:      appDid,
+		feedDidBase: feedDidBase,
 	}
 
 	mux := http.NewServeMux()
@@ -114,10 +118,10 @@ type FeedRespsonse struct {
 
 func (s *Server) HandleDescribeFeedGenerator(w http.ResponseWriter, r *http.Request) {
 	resp := DescribeFeedResponse{
-		DID: "did:web:willdot.net",
+		DID: s.appDid,
 		Feeds: []FeedRespsonse{
 			{
-				URI: "did:plc:dadhhalkfcq3gucaq25hjqon.app.bsky.feed.generator.test",
+				URI: fmt.Sprintf("%s.app.bsky.feed.generator.test", s.feedDidBase),
 			},
 		},
 	}
