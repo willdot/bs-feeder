@@ -64,6 +64,7 @@ type FeedItme struct {
 }
 
 func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
+	slog.Info("got request for feed skeleton", "host", r.RemoteAddr)
 	params := r.URL.Query()
 
 	feed := params.Get("feed")
@@ -118,6 +119,7 @@ type FeedRespsonse struct {
 }
 
 func (s *Server) HandleDescribeFeedGenerator(w http.ResponseWriter, r *http.Request) {
+	slog.Info("got request for describe feed", "host", r.RemoteAddr)
 	resp := DescribeFeedResponse{
 		DID: fmt.Sprintf("did:web:%s", s.feedHost),
 		Feeds: []FeedRespsonse{
@@ -158,6 +160,7 @@ type WellKnownService struct {
 }
 
 func (s *Server) HandleWellKnown(w http.ResponseWriter, r *http.Request) {
+	slog.Info("got request for well known", "host", r.RemoteAddr)
 	resp := WellKnownResponse{
 		Context: []string{"https://www.w3.org/ns/did/v1"},
 		Id:      fmt.Sprintf("did:web:%s", s.feedHost),
