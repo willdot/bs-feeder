@@ -55,7 +55,7 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 type FeedReponse struct {
-	//Cursor string     `json:"cursor"`
+	Cursor string     `json:"cursor"`
 	Feed   []FeedItme `json:"feed"`
 }
 
@@ -73,6 +73,7 @@ func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing feed query param", http.StatusBadRequest)
 		return
 	}
+	slog.Info("request for feed", "feed", feed)
 
 	limitStr := params.Get("limit")
 	limit := 50
@@ -90,7 +91,6 @@ func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cursor := params.Get("cursor")
-	slog.Info("cursor", "val", cursor)
 
 	// TODO: get things from DB and return it
 
@@ -108,7 +108,6 @@ func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("done", "body", string(b), "host", r.RemoteAddr)
 	w.Header().Set("Content-Type", "application/json")
 
 	w.Write(b)
