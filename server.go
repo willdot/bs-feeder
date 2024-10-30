@@ -109,6 +109,7 @@ func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.Info("done", "body", string(b), "host", r.RemoteAddr)
+	w.Header().Set("Content-Type", "application/json")
 
 	w.Write(b)
 }
