@@ -60,7 +60,8 @@ type FeedReponse struct {
 }
 
 type FeedItme struct {
-	Post string `json:"post"`
+	Post        string `json:"post"`
+	FeedContext string `json:"feedContext"`
 }
 
 func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {

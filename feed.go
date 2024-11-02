@@ -16,7 +16,8 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, feed, cursor string, limit 
 	resp := &FeedReponse{
 		Feed: []FeedItme{
 			{
-				Post: "at://did:plc:dadhhalkfcq3gucaq25hjqon/app.bsky.feed.post/3l7j5ma2si42r",
+				Post:        "at://did:plc:dadhhalkfcq3gucaq25hjqon/app.bsky.feed.post/3l7j5ma2si42r",
+				FeedContext: "this is some additional context",
 			},
 		},
 		Cursor: "",
