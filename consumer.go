@@ -56,6 +56,9 @@ func (con *consumer) Consume(ctx context.Context, logger *slog.Logger) error {
 			select {
 			case <-ticker.C:
 				eventsRead := c.EventsRead.Load()
+				if eventsRead == 0 {
+					continue
+				}
 				bytesRead := c.BytesRead.Load()
 				avgEventSize := bytesRead / eventsRead
 				logger.Info("stats", "events_read", eventsRead, "bytes_read", bytesRead, "avg_event_size", avgEventSize)
