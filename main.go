@@ -8,9 +8,15 @@ import (
 	"syscall"
 )
 
+const (
+	jsServerAddr = "wss://jetstream.atproto.tools/subscribe"
+)
+
 func main() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	feeder := NewFeedGenerator()
 
@@ -25,10 +31,21 @@ func main() {
 		os.Exit(1)
 	}
 
+	enableJS := os.Getenv("ENABLE_JETSTREAM")
+	if enableJS == "true" {
+		consumer := NewConsumer(jsServerAddr)
+		go func() {
+			err := consumer.Consume(ctx, slog.Default())
+			if err != nil {
+				slog.Error("consume", "error", err)
+			}
+		}()
+	}
+
 	server := NewServer(443, feeder, feedHost, feedDidBase)
 	go func() {
 		<-signals
-
+		cancel()
 		_ = server.Stop(context.Background())
 	}()
 
