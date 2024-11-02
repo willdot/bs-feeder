@@ -26,6 +26,9 @@ func NewConsumer(jsAddr string) *consumer {
 	cfg.WantedCollections = []string{
 		"app.bsky.feed.post",
 	}
+	cfg.WantedDids = []string{
+		"did:plc:dadhhalkfcq3gucaq25hjqon",
+	}
 	return &consumer{
 		cfg: cfg,
 	}
@@ -83,9 +86,7 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 				return fmt.Errorf("failed to unmarshal post: %w", err)
 			}
 
-			if event.Account.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
-				fmt.Printf("%v |(%s)| %s\n", time.UnixMicro(event.TimeUS).Local().Format("15:04:05"), event.Did, post.Text)
-			}
+			fmt.Printf("%v |(%s)| %s\n", time.UnixMicro(event.TimeUS).Local().Format("15:04:05"), event.Did, post.Text)
 		}
 	}
 
