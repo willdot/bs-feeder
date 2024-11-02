@@ -92,8 +92,6 @@ func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
 
 	cursor := params.Get("cursor")
 
-	// TODO: get things from DB and return it
-
 	resp, err := s.feeder.GetFeed(r.Context(), feed, cursor, limit)
 	if err != nil {
 		slog.Error("get feed", "error", err, "feed", feed)
@@ -142,15 +140,6 @@ func (s *Server) HandleDescribeFeedGenerator(w http.ResponseWriter, r *http.Requ
 	w.Write(b)
 }
 
-// "@context": ["https://www.w3.org/ns/did/v1"],
-//
-//	"id": FEED_DID,
-//	"service":[{
-//		"id": "#bsky_fg",
-//		"type": "BskyFeedGenerator",
-//		"serviceEndpoint": f"https://{FEED_HOSTNAME}"
-//	}]
-
 type WellKnownResponse struct {
 	Context []string           `json:"@context"`
 	Id      string             `json:"id"`
@@ -169,7 +158,7 @@ func (s *Server) HandleWellKnown(w http.ResponseWriter, r *http.Request) {
 		Context: []string{"https://www.w3.org/ns/did/v1"},
 		Id:      fmt.Sprintf("did:web:%s", s.feedHost),
 		Service: []WellKnownService{
-			WellKnownService{
+			{
 				Id:              "#bsky_fg",
 				Type:            "BskyFeedGenerator",
 				ServiceEndpoint: fmt.Sprintf("https://%s", s.feedHost),
