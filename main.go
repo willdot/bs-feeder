@@ -61,7 +61,7 @@ func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator
 
 			var closeErr *websocket.CloseError
 			if errors.As(err, &closeErr) {
-				if closeErr.Code == websocket.CloseAbnormalClosure && continueCount <= 10 {
+				if closeErr.Code == websocket.CloseAbnormalClosure && continueCount <= 100 {
 					slog.Error("consume - trying again", "error", err)
 					continueCount++
 					continue

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"slices"
 	"time"
 
 	apibsky "github.com/bluesky-social/indigo/api/bsky"
@@ -59,9 +60,10 @@ func (con *consumer) Consume(ctx context.Context, feedGen *FeedGenerator, logger
 }
 
 type handler struct {
-	seenSeqs      map[int64]struct{}
-	highwater     int64
-	feedGenerator *FeedGenerator
+	seenSeqs         map[int64]struct{}
+	highwater        int64
+	feedGenerator    *FeedGenerator
+	parentsToLookFor []string
 }
 
 func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
@@ -74,14 +76,19 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 				return fmt.Errorf("failed to unmarshal post: %w", err)
 			}
 
-			// only look for posts where I've "subsribed"
-			if post.Text != "/subscribe" {
+			// look for posts where I've "subsribed" so that we can add the parent URI to a list of replies to that parent to look for
+			if post.Text == "/subscribe" {
+				if post.Reply != nil && post.Reply.Parent != nil && post.Reply.Parent.Uri != "" {
+					slog.Info("it's a reply with a parent! Adding to parents to look for", "parent URI", post.Reply.Parent.Uri)
+
+				}
 				return nil
 			}
 
 			if post.Reply != nil && post.Reply.Parent != nil && post.Reply.Parent.Uri != "" {
-				slog.Info("it's a reply with a parent! Adding to feeds", "parent URI", post.Reply.Parent.Uri)
-				h.feedGenerator.AddToFeed(post.Reply.Parent.Uri)
+				if slices.Contains(h.parentsToLookFor, post.Reply.Parent.Uri) {
+					h.feedGenerator.AddToFeed(fmt.Sprintf("at://%s", event.Did))
+				}
 			}
 		}
 	}
