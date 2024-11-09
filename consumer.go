@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -90,8 +91,8 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 			defer h.mu.Unlock()
 
 			// look for posts where I've "subsribed" so that we can add the parent URI to a list of replies to that parent to look for
-			if post.Text == "/subscribe" && event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
-				slog.Info("it's a reply with a parent! Adding to parents to look for", "parent URI", post.Reply.Parent.Uri)
+			if strings.Contains(post.Text, "/subscribe") && event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
+				slog.Info("a post that's subscribing to a parent. Adding to parents to look for", "parent URI", post.Reply.Parent.Uri)
 				h.parentsToLookFor[post.Reply.Parent.Uri] = struct{}{}
 				return nil
 			}
