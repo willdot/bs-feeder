@@ -87,9 +87,8 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 
 			if post.Reply != nil && post.Reply.Parent != nil && post.Reply.Parent.Uri != "" {
 				if slices.Contains(h.parentsToLookFor, post.Reply.Parent.Uri) {
-					slog.Info("Event", "data", fmt.Sprintf("%+v", event))
-					// TODO: need to try and work out the URI
-					h.feedGenerator.AddToFeed(fmt.Sprintf("at://%s", event.Did))
+					slog.Info("Event", "data", fmt.Sprintf("%+v", event.Commit))
+					h.feedGenerator.AddToFeed(fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey))
 				}
 			}
 		}
