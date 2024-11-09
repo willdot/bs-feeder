@@ -51,6 +51,7 @@ func main() {
 
 func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator) {
 	consumer := NewConsumer(jsServerAddr)
+	continueCount := 0
 	for {
 		err := consumer.Consume(ctx, feeder, slog.Default())
 		if err != nil {
@@ -58,9 +59,13 @@ func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator
 				return
 			}
 
-			if websocket.IsCloseError(err, websocket.CloseAbnormalClosure) {
-				slog.Error("consume - trying again", "error", err)
-				continue
+			var closeErr *websocket.CloseError
+			if errors.As(err, &closeErr) {
+				if closeErr.Code == websocket.CloseAbnormalClosure && continueCount <= 10 {
+					slog.Error("consume - trying again", "error", err)
+					continueCount++
+					continue
+				}
 			}
 			slog.Error("consume - exiting gracefully", "error", err)
 			return
