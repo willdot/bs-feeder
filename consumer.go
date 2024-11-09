@@ -34,9 +34,10 @@ func NewConsumer(jsAddr string) *consumer {
 	}
 }
 
-func (con *consumer) Consume(ctx context.Context, logger *slog.Logger) error {
+func (con *consumer) Consume(ctx context.Context, feedGen *FeedGenerator, logger *slog.Logger) error {
 	h := &handler{
-		seenSeqs: make(map[int64]struct{}),
+		seenSeqs:      make(map[int64]struct{}),
+		feedGenerator: feedGen,
 	}
 
 	scheduler := sequential.NewScheduler("jetstream_localdev", logger, h.HandleEvent)
@@ -49,23 +50,6 @@ func (con *consumer) Consume(ctx context.Context, logger *slog.Logger) error {
 
 	cursor := time.Now().Add(5 * -time.Minute).UnixMicro()
 
-	// // Every 5 seconds print the events read and bytes read and average event size
-	// go func() {
-	// 	ticker := time.NewTicker(5 * time.Second)
-	// 	for {
-	// 		select {
-	// 		case <-ticker.C:
-	// 			eventsRead := c.EventsRead.Load()
-	// 			if eventsRead == 0 {
-	// 				continue
-	// 			}
-	// 			bytesRead := c.BytesRead.Load()
-	// 			avgEventSize := bytesRead / eventsRead
-	// 			logger.Info("stats", "events_read", eventsRead, "bytes_read", bytesRead, "avg_event_size", avgEventSize)
-	// 		}
-	// 	}
-	// }()
-
 	if err := c.ConnectAndRead(ctx, &cursor); err != nil {
 		return fmt.Errorf("connect and read: %w", err)
 	}
@@ -75,8 +59,9 @@ func (con *consumer) Consume(ctx context.Context, logger *slog.Logger) error {
 }
 
 type handler struct {
-	seenSeqs  map[int64]struct{}
-	highwater int64
+	seenSeqs      map[int64]struct{}
+	highwater     int64
+	feedGenerator *FeedGenerator
 }
 
 func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
@@ -89,7 +74,15 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 				return fmt.Errorf("failed to unmarshal post: %w", err)
 			}
 
-			fmt.Printf("%v |(%s)| %s\n", time.UnixMicro(event.TimeUS).Local().Format("15:04:05"), event.Did, post.Text)
+			// only look for posts where I've "subsribed"
+			if post.Text != "/subscribe" {
+				return nil
+			}
+
+			if post.Reply != nil && post.Reply.Parent != nil && post.Reply.Parent.Uri != "" {
+				slog.Info("it's a reply with a parent! Adding to feeds", "parent URI", post.Reply.Parent.Uri)
+				h.feedGenerator.AddToFeed(post.Reply.Parent.Uri)
+			}
 		}
 	}
 

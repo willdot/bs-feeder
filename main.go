@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -33,13 +36,7 @@ func main() {
 
 	enableJS := os.Getenv("ENABLE_JETSTREAM")
 	if enableJS == "true" {
-		consumer := NewConsumer(jsServerAddr)
-		go func() {
-			err := consumer.Consume(ctx, slog.Default())
-			if err != nil {
-				slog.Error("consume", "error", err)
-			}
-		}()
+		go consumeLoop(ctx, jsServerAddr, feeder)
 	}
 
 	server := NewServer(443, feeder, feedHost, feedDidBase)
@@ -50,4 +47,23 @@ func main() {
 	}()
 
 	server.Run()
+}
+
+func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator) {
+	consumer := NewConsumer(jsServerAddr)
+	for {
+		err := consumer.Consume(ctx, feeder, slog.Default())
+		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return
+			}
+
+			if websocket.IsCloseError(err, websocket.CloseAbnormalClosure) {
+				slog.Error("consume - trying again", "error", err)
+				continue
+			}
+			slog.Error("consume - exiting gracefully", "error", err)
+			return
+		}
+	}
 }
