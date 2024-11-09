@@ -7,31 +7,23 @@ import (
 
 type FeedGenerator struct {
 	mu    sync.Mutex
-	feeds []string
+	posts map[string]struct{}
 }
 
-// TODO: pass in feeds or something
 func NewFeedGenerator() *FeedGenerator {
-	return &FeedGenerator{}
+	return &FeedGenerator{
+		posts: make(map[string]struct{}),
+	}
 }
 
 func (f *FeedGenerator) GetFeed(ctx context.Context, feed, cursor string, limit int) (*FeedReponse, error) {
-	// TODO: get something from a database instead
-	// resp := &FeedReponse{
-	// 	Feed: []FeedItem{
-	// 		{
-	// 			Post:        "at://did:plc:dadhhalkfcq3gucaq25hjqon/app.bsky.feed.post/3l7j5ma2si42r",
-	// 			FeedContext: "this is some additional context",
-	// 		},
-	// 	},
-	// 	Cursor: "",
-	// }
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	feedItems := make([]FeedItem, 0, len(f.feeds))
-	for _, feed := range f.feeds {
+
+	feedItems := make([]FeedItem, 0, len(f.posts))
+	for post := range f.posts {
 		feedItems = append(feedItems, FeedItem{
-			Post: feed,
+			Post: post,
 		})
 	}
 
@@ -43,9 +35,9 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, feed, cursor string, limit 
 	return resp, nil
 }
 
-func (f *FeedGenerator) AddToFeed(postURI string) {
+func (f *FeedGenerator) AddToFeedPosts(postURI string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	// TODO: store this in DB instead
-	f.feeds = append(f.feeds, postURI)
+	f.posts[postURI] = struct{}{}
 }
