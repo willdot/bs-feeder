@@ -80,7 +80,7 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 			if post.Text == "/subscribe" {
 				if post.Reply != nil && post.Reply.Parent != nil && post.Reply.Parent.Uri != "" {
 					slog.Info("it's a reply with a parent! Adding to parents to look for", "parent URI", post.Reply.Parent.Uri)
-
+					h.parentsToLookFor = append(h.parentsToLookFor, post.Reply.Parent.Uri)
 				}
 				return nil
 			}
