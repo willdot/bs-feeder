@@ -199,7 +199,7 @@ func getRequestUserDID(r *http.Request) (string, error) {
 	}
 	token := strings.TrimSpace(strings.Replace(headerValues[0], "Bearer ", "", 1))
 
-	validMethods := jwt.WithValidMethods([]string{"alg"})
+	validMethods := jwt.WithValidMethods([]string{ES256, ES256K})
 
 	keyfunc := func(token *jwt.Token) (interface{}, error) {
 		return token, nil

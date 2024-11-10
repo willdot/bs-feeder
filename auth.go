@@ -10,6 +10,11 @@ import (
 // The contents of this file have been borrowed from here: https://github.com/orthanc/bluesky-go-feeds/blob/f719f113f1afc9080e50b4b1f5ca239aa3073c79/web/auth.go#L20-L46
 // It essentially allows the signing method that atproto uses for JWT to be used when verifying the JWT that they send in requests
 
+const (
+	ES256K = "ES256K"
+	ES256  = "ES256"
+)
+
 type AtProtoSigningMethod struct {
 	alg string
 }
