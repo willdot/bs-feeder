@@ -7,10 +7,15 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
+
+	"github.com/bluesky-social/indigo/atproto/identity"
+	"github.com/bluesky-social/indigo/atproto/syntax"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Feeder interface {
-	GetFeed(ctx context.Context, feed, cursor string, limit int) (*FeedReponse, error)
+	GetFeed(ctx context.Context, userDID, feed, cursor string, limit int) (*FeedReponse, error)
 }
 
 type Server struct {
@@ -92,8 +97,14 @@ func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cursor := params.Get("cursor")
+	usersDID, err := validateAuth(r)
+	if err != nil {
+		slog.Error("validate auth", "error", err)
+		http.Error(w, "validate auth", http.StatusUnauthorized)
+		return
+	}
 
-	resp, err := s.feeder.GetFeed(r.Context(), feed, cursor, limit)
+	resp, err := s.feeder.GetFeed(r.Context(), usersDID, feed, cursor, limit)
 	if err != nil {
 		slog.Error("get feed", "error", err, "feed", feed)
 		http.Error(w, "error getting feed", http.StatusInternalServerError)
@@ -174,4 +185,39 @@ func (s *Server) HandleWellKnown(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(b)
+}
+
+// this extracts the DID of the user that has made the request from the JWT of the auth header
+var directory = identity.DefaultDirectory()
+
+func validateAuth(r *http.Request) (string, error) {
+	headerValues := r.Header["Authorization"]
+	if len(headerValues) != 1 {
+		return "", fmt.Errorf("missing authorization header")
+	}
+	token := strings.TrimSpace(strings.Replace(headerValues[0], "Bearer ", "", 1))
+
+	nsid := strings.Replace(r.URL.Path, "/xrpc/", "", 1)
+
+	parsedToken, err := jwt.ParseWithClaims(token, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+		did := syntax.DID(token.Claims.(jwt.MapClaims)["iss"].(string))
+		identity, err := directory.LookupDID(r.Context(), did)
+		if err != nil {
+			return nil, fmt.Errorf("unable to resolve did %s: %s", did, err)
+		}
+		key, err := identity.PublicKey()
+		if err != nil {
+			return nil, fmt.Errorf("signing key not found for did %s: %s", did, err)
+		}
+		return key, nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("invalid token: %s", err)
+	}
+
+	claims := parsedToken.Claims.(jwt.MapClaims)
+	if claims["lxm"] != nsid {
+		return "", fmt.Errorf("bad jwt lexicon method (\"lxm\"). must match: %s", nsid)
+	}
+	return claims["iss"].(string), nil
 }

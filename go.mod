@@ -5,6 +5,8 @@ go 1.22.0
 require (
 	github.com/bluesky-social/indigo v0.0.0-20241031232035-1a73c3fb6841
 	github.com/bluesky-social/jetstream v0.0.0-20241031234625-0ab10bd041fe
+	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/gorilla/websocket v1.5.1
 )
 
 require (
@@ -17,7 +19,6 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect

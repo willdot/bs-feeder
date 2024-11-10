@@ -100,7 +100,7 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 			// see if the post is a reply to a post we are subscribed to
 			if _, ok := h.parentsToLookFor[post.Reply.Parent.Uri]; ok {
 				slog.Info("post is a reply to a parent we are subscribed to", "parent URI", post.Reply.Parent.Uri, "did", event.Did, "RKey", event.Commit.RKey)
-				h.feedGenerator.AddToFeedPosts(fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey))
+				h.feedGenerator.AddToFeedPosts(event.Did, fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey))
 			}
 		}
 	}
