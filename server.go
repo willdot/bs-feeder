@@ -193,6 +193,9 @@ func (s *Server) HandleWellKnown(w http.ResponseWriter, r *http.Request) {
 
 func getRequestUserDID(r *http.Request) (string, error) {
 	headerValues := r.Header["Authorization"]
+
+	slog.Info("header values", "vals", headerValues)
+
 	if len(headerValues) != 1 {
 		return "", fmt.Errorf("missing authorization header")
 	}
