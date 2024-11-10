@@ -194,16 +194,18 @@ func (s *Server) HandleWellKnown(w http.ResponseWriter, r *http.Request) {
 func getRequestUserDID(r *http.Request) (string, error) {
 	headerValues := r.Header["Authorization"]
 
-	slog.Info("header values", "vals", headerValues)
-
 	if len(headerValues) != 1 {
 		return "", fmt.Errorf("missing authorization header")
 	}
 	token := strings.TrimSpace(strings.Replace(headerValues[0], "Bearer ", "", 1))
 
-	parsedToken, err := jwt.ParseWithClaims(token, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+	validMethods := jwt.WithValidMethods([]string{"alg"})
+
+	keyfunc := func(token *jwt.Token) (interface{}, error) {
 		return token, nil
-	})
+	}
+
+	parsedToken, err := jwt.ParseWithClaims(token, jwt.MapClaims{}, keyfunc, validMethods)
 	if err != nil {
 		return "", fmt.Errorf("invalid token: %s", err)
 	}
