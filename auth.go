@@ -2,7 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
 
+	"github.com/bluesky-social/indigo/atproto/crypto"
+	"github.com/bluesky-social/indigo/atproto/identity"
+	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -23,8 +28,7 @@ func (m *AtProtoSigningMethod) Alg() string {
 }
 
 func (m *AtProtoSigningMethod) Verify(signingString string, signature []byte, key interface{}) error {
-	// return key.(crypto.PublicKey).HashAndVerifyLenient([]byte(signingString), signature)
-	return nil
+	return key.(crypto.PublicKey).HashAndVerifyLenient([]byte(signingString), signature)
 }
 
 func (m *AtProtoSigningMethod) Sign(signingString string, key interface{}) ([]byte, error) {
@@ -41,4 +45,49 @@ func init() {
 	jwt.RegisterSigningMethod(ES256.Alg(), func() jwt.SigningMethod {
 		return &ES256
 	})
+}
+
+
+var directory = identity.DefaultDirectory()
+
+func getRequestUserDID(r *http.Request) (string, error) {
+	headerValues := r.Header["Authorization"]
+
+	if len(headerValues) != 1 {
+		return "", fmt.Errorf("missing authorization header")
+	}
+	token := strings.TrimSpace(strings.Replace(headerValues[0], "Bearer ", "", 1))
+
+	validMethods := jwt.WithValidMethods([]string{ES256, ES256K})
+
+	keyfunc := func(token *jwt.Token) (interface{}, error) {
+		// return token, nil
+		did := syntax.DID(token.Claims.(jwt.MapClaims)["iss"].(string))
+		identity, err := directory.LookupDID(r.Context(), did)
+		if err != nil {
+			return nil, fmt.Errorf("unable to resolve did %s: %s", did, err)
+		}
+		key, err := identity.PublicKey()
+		if err != nil {
+			return nil, fmt.Errorf("signing key not found for did %s: %s", did, err)
+		}
+		return key, nil
+	}
+
+	parsedToken, err := jwt.ParseWithClaims(token, jwt.MapClaims{}, keyfunc, validMethods)
+	if err != nil {
+		return "", fmt.Errorf("invalid token: %s", err)
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", fmt.Errorf("token contained no claims")
+	}
+
+	issVal, ok := claims["iss"].(string)
+	if !ok {
+		return "", fmt.Errorf("iss claim missing")
+	}
+
+	return string(syntax.DID(issVal)), nil
 }

@@ -7,14 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	"strings"
-
-	"github.com/bluesky-social/indigo/atproto/syntax"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type Feeder interface {
-	GetFeed(ctx context.Context, userDID, feed, cursor string, limit int) (*FeedReponse, error)
+	GetFeed(ctx context.Context, userDID, feed, cursor string, limit int) (FeedReponse, error)
 }
 
 type Server struct {
@@ -189,36 +185,4 @@ func (s *Server) HandleWellKnown(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(b)
-}
-
-func getRequestUserDID(r *http.Request) (string, error) {
-	headerValues := r.Header["Authorization"]
-
-	if len(headerValues) != 1 {
-		return "", fmt.Errorf("missing authorization header")
-	}
-	token := strings.TrimSpace(strings.Replace(headerValues[0], "Bearer ", "", 1))
-
-	validMethods := jwt.WithValidMethods([]string{ES256, ES256K})
-
-	keyfunc := func(token *jwt.Token) (interface{}, error) {
-		return token, nil
-	}
-
-	parsedToken, err := jwt.ParseWithClaims(token, jwt.MapClaims{}, keyfunc, validMethods)
-	if err != nil {
-		return "", fmt.Errorf("invalid token: %s", err)
-	}
-
-	claims, ok := parsedToken.Claims.(jwt.MapClaims)
-	if !ok {
-		return "", fmt.Errorf("token contained no claims")
-	}
-
-	issVal, ok := claims["iss"].(string)
-	if !ok {
-		return "", fmt.Errorf("iss claim missing")
-	}
-
-	return string(syntax.DID(issVal)), nil
 }
