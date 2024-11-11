@@ -10,7 +10,7 @@ import (
 )
 
 type Feeder interface {
-	GetFeed(ctx context.Context, userDID, feed, cursor string, limit int) (FeedReponse, error)
+	GetFeed(ctx context.Context, userDID, feed, cursor string, limit int) (*FeedReponse, error)
 }
 
 type Server struct {
@@ -108,6 +108,11 @@ func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("get feed", "error", err, "feed", feed)
 		http.Error(w, "error getting feed", http.StatusInternalServerError)
+		return
+	}
+
+	if resp == nil {
+		slog.Info("no feed posts found")
 		return
 	}
 

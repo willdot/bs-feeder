@@ -16,7 +16,7 @@ func NewFeedGenerator() *FeedGenerator {
 	}
 }
 
-func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor string, limit int) (FeedReponse, error) {
+func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor string, limit int) (*FeedReponse, error) {
 	resp := FeedReponse{}
 
 	f.mu.Lock()
@@ -24,7 +24,7 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor strin
 
 	usersFeed, ok := f.posts[userDID]
 	if !ok {
-		return resp, nil
+		return nil, nil
 	}
 
 	feedItems := make([]FeedItem, 0, len(f.posts))
@@ -37,7 +37,7 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor strin
 	resp.Feed = feedItems
 	resp.Cursor = ""
 
-	return resp, nil
+	return &resp, nil
 }
 
 func (f *FeedGenerator) AddToFeedPosts(usersDids []string, postURI string) {
