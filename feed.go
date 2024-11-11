@@ -29,7 +29,7 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor strin
 		return resp, nil
 	}
 
-	feedItems := make([]FeedItem, 0, len(f.posts))
+	feedItems := make([]FeedItem, 0, len(usersFeed))
 	for _, post := range usersFeed {
 		feedItems = append(feedItems, FeedItem{
 			Post: post,
