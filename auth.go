@@ -47,7 +47,6 @@ func init() {
 	})
 }
 
-
 var directory = identity.DefaultDirectory()
 
 func getRequestUserDID(r *http.Request) (string, error) {
@@ -61,7 +60,6 @@ func getRequestUserDID(r *http.Request) (string, error) {
 	validMethods := jwt.WithValidMethods([]string{ES256, ES256K})
 
 	keyfunc := func(token *jwt.Token) (interface{}, error) {
-		// return token, nil
 		did := syntax.DID(token.Claims.(jwt.MapClaims)["iss"].(string))
 		identity, err := directory.LookupDID(r.Context(), did)
 		if err != nil {

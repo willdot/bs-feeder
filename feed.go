@@ -40,15 +40,17 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor strin
 	return resp, nil
 }
 
-func (f *FeedGenerator) AddToFeedPosts(usersDid, postURI string) {
+func (f *FeedGenerator) AddToFeedPosts(usersDids []string, postURI string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	// TODO: store this in DB instead
-	usersPosts, ok := f.posts[usersDid]
-	if !ok {
-		usersPosts = make([]string, 0, 1)
-	}
+	for _, did := range usersDids {
+		// TODO: store this in DB instead
+		usersPosts, ok := f.posts[did]
+		if !ok {
+			usersPosts = make([]string, 0, 1)
+		}
 
-	usersPosts = append(usersPosts, postURI)
-	f.posts[usersDid] = usersPosts
+		usersPosts = append(usersPosts, postURI)
+		f.posts[did] = usersPosts
+	}
 }

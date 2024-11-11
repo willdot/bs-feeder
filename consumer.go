@@ -28,9 +28,7 @@ func NewConsumer(jsAddr string) *consumer {
 	cfg.WantedCollections = []string{
 		"app.bsky.feed.post",
 	}
-	cfg.WantedDids = []string{
-		// "did:plc:dadhhalkfcq3gucaq25hjqon",
-	}
+	cfg.WantedDids = []string{}
 	return &consumer{
 		cfg: cfg,
 	}
@@ -66,7 +64,7 @@ type handler struct {
 	highwater        int64
 	feedGenerator    *FeedGenerator
 	mu               sync.Mutex
-	parentsToLookFor map[string]struct{}
+	parentsToLookFor map[string]map[string]struct{}
 }
 
 func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
@@ -93,16 +91,54 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 			// look for posts where I've "subsribed" so that we can add the parent URI to a list of replies to that parent to look for
 			if strings.Contains(post.Text, "/subscribe") && event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
 				slog.Info("a post that's subscribing to a parent. Adding to parents to look for", "parent URI", post.Reply.Parent.Uri)
-				h.parentsToLookFor[post.Reply.Parent.Uri] = struct{}{}
+				// h.parentsToLookFor[post.Reply.Parent.Uri] = struct{}{}
+				h.addDidToSubscribedParent(post.Reply.Parent.Uri, event.Did)
 				return nil
 			}
 
 			// see if the post is a reply to a post we are subscribed to
-			if _, ok := h.parentsToLookFor[post.Reply.Parent.Uri]; ok {
-				slog.Info("post is a reply to a parent we are subscribed to", "parent URI", post.Reply.Parent.Uri, "did", event.Did, "RKey", event.Commit.RKey)
-				h.feedGenerator.AddToFeedPosts(event.Did, fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey))
+			subscribedDids := h.getSubscribedDidsForParent(post.Reply.Parent.Uri)
+			if len(subscribedDids) == 0 {
+				return nil
 			}
+
+			slog.Info("post is a reply to a parent that users are subscribed to", "parent URI", post.Reply.Parent.Uri, "dids", subscribedDids, "RKey", event.Commit.RKey)
+
+			h.feedGenerator.AddToFeedPosts(subscribedDids, fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey))
 		}
 	}
 	return nil
+}
+
+func (h *handler) addDidToSubscribedParent(parentURI, did string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	subscribedDids, ok := h.parentsToLookFor[parentURI]
+	if !ok {
+		h.parentsToLookFor[parentURI] = map[string]struct{}{
+			did: struct{}{},
+		}
+		return
+	}
+
+	subscribedDids[did] = struct{}{}
+	h.parentsToLookFor[parentURI] = subscribedDids
+}
+
+func (h *handler) getSubscribedDidsForParent(parentURI string) []string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	subscribedDids, ok := h.parentsToLookFor[parentURI]
+	if !ok {
+		return nil
+	}
+
+	dids := make([]string, 0, len(subscribedDids))
+	for did := range subscribedDids {
+		dids = append(dids, did)
+	}
+
+	return dids
 }
