@@ -38,7 +38,7 @@ func (con *consumer) Consume(ctx context.Context, feedGen *FeedGenerator, logger
 	h := &handler{
 		seenSeqs:         make(map[int64]struct{}),
 		feedGenerator:    feedGen,
-		parentsToLookFor: make(map[string]struct{}),
+		parentsToLookFor: make(map[string]map[string]struct{}),
 	}
 
 	scheduler := sequential.NewScheduler("jetstream_localdev", logger, h.HandleEvent)
@@ -85,21 +85,22 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 				return nil
 			}
 
+			parentURI := post.Reply.Parent.Uri
+
 			// look for posts where I've "subsribed" so that we can add the parent URI to a list of replies to that parent to look for
 			if strings.Contains(post.Text, "/subscribe") && event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
-				slog.Info("a post that's subscribing to a parent. Adding to parents to look for", "parent URI", post.Reply.Parent.Uri)
-				// h.parentsToLookFor[post.Reply.Parent.Uri] = struct{}{}
-				h.addDidToSubscribedParent(post.Reply.Parent.Uri, event.Did)
+				slog.Info("a post that's subscribing to a parent. Adding to parents to look for", "parent URI", parentURI)
+				h.addDidToSubscribedParent(parentURI, event.Did)
 				return nil
 			}
 
 			// see if the post is a reply to a post we are subscribed to
-			subscribedDids := h.getSubscribedDidsForParent(post.Reply.Parent.Uri)
+			subscribedDids := h.getSubscribedDidsForParent(parentURI)
 			if len(subscribedDids) == 0 {
 				return nil
 			}
 
-			slog.Info("post is a reply to a parent that users are subscribed to", "parent URI", post.Reply.Parent.Uri, "dids", subscribedDids, "RKey", event.Commit.RKey)
+			slog.Info("post is a reply to a parent that users are subscribed to", "parent URI", parentURI, "dids", subscribedDids, "RKey", event.Commit.RKey)
 
 			h.feedGenerator.AddToFeedPosts(subscribedDids, fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey))
 		}
