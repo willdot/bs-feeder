@@ -124,7 +124,8 @@ func (h *handler) handleDeleteEvent(_ context.Context, event *models.Event) erro
 
 	var post apibsky.FeedPost
 	if err := json.Unmarshal(event.Commit.Record, &post); err != nil {
-		slog.Error("failed to unmarshal post - skipping", "error", err)
+		// ignore this
+		return nil
 	}
 
 	// we only care about posts that have parents which are replies
