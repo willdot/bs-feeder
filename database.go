@@ -32,7 +32,7 @@ func NewDatabase(dbPath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("creating feed table: %w", err)
 	}
 
-	err = createSubscriptionTable(db)
+	err = createSubscriptionsTable(db)
 	if err != nil {
 		return nil, fmt.Errorf("creating subscription table: %w", err)
 	}
@@ -76,7 +76,7 @@ func createFeedTable(db *sql.DB) error {
 	return nil
 }
 
-func createSubscriptionTables(db *sql.DB) error {
+func createSubscriptionsTable(db *sql.DB) error {
 	createSubscriptionsTableSQL := `CREATE TABLE IF NOT EXISTS subscriptions (
 		"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
 		"parentURI" TEXT,
