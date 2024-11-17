@@ -61,7 +61,6 @@ func createTable(db *sql.DB) {
 	}
 	_, err = statement.Exec()
 	if err != nil {
-		if errors.Is(sql., target error)
 		bugsnag.Notify(fmt.Errorf("exec sql statement: %w", err))
 		return
 	}
