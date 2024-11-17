@@ -179,7 +179,7 @@ func addSubscriptionForParent(db *sql.DB, parentURI, userDid string) error {
 }
 
 func deleteSubscriptionForUser(db *sql.DB, userDID, parentURI string) error {
-	sql := "DELETE FROM subscription WHERE (parentURI = ? AND userDID = ?);"
+	sql := "DELETE FROM subscriptions WHERE (parentURI = ? AND userDID = ?);"
 	_, err := db.Exec(sql, parentURI, userDID)
 	if err != nil {
 		return fmt.Errorf("exec delete subscription for user: %w", err)
