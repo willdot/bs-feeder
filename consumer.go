@@ -133,19 +133,21 @@ func (h *handler) handleDeleteEvent(_ context.Context, event *models.Event) erro
 		return fmt.Errorf("get subscribing post parent URI: %w", err)
 	}
 
+	slog.Info("delete parent URI", "parent URI", parentURI, "rkey", event.Commit.RKey)
+
 	//  delete from feeds for the parentURI and the users DID first. This is so that if this fails, it can be tried again and the
 	// subscription will be still there
-	err = deleteSubscriptionForUser(h.db, event.Did, parentURI)
-	if err != nil {
-		slog.Error("delete subscription for user", "error", err, "parentURI", parentURI, "user DID", event.Did)
-		return fmt.Errorf("delete subscription and user: %w", err)
-	}
-
-	// delete from subscriptions for the parentURI and the users DID now that we have cleaned up the feeds
 	err = deleteFeedItemsForParentURIandUserDID(h.db, parentURI, event.Did)
 	if err != nil {
 		slog.Error("delete feed items for parentURI and user", "error", err, "parentURI", parentURI, "user DID", event.Did)
 		return fmt.Errorf("delete feed items for parentURI and user: %w", err)
+	}
+
+	// delete from subscriptions for the parentURI and the users DID now that we have cleaned up the feeds
+	err = deleteSubscriptionForUser(h.db, event.Did, parentURI)
+	if err != nil {
+		slog.Error("delete subscription for user", "error", err, "parentURI", parentURI, "user DID", event.Did)
+		return fmt.Errorf("delete subscription and user: %w", err)
 	}
 
 	return nil
