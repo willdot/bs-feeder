@@ -182,6 +182,7 @@ func addSubscriptionForParent(db *sql.DB, parentURI, userDid, subscriptionRkey s
 }
 
 func getSubscribingPostParentURI(db *sql.DB, userDID, rkey string) (string, error) {
+	slog.Info("params", "rkey", rkey, "did", userDID)
 	sql := "SELECT id, parentURI FROM subscriptions WHERE subscriptionRkey = ? AND userDID = ?;"
 	rows, err := db.Query(sql, rkey, userDID)
 	if err != nil {
@@ -205,7 +206,7 @@ func getSubscribingPostParentURI(db *sql.DB, userDID, rkey string) (string, erro
 }
 
 func deleteSubscriptionForUser(db *sql.DB, userDID, parentURI string) error {
-	sql := "DELETE FROM subscriptions WHERE (parentURI = ? AND userDID = ?);"
+	sql := "DELETE FROM subscriptions WHERE parentURI = ? AND userDID = ?;"
 	_, err := db.Exec(sql, parentURI, userDID)
 	if err != nil {
 		return fmt.Errorf("exec delete subscription for user: %w", err)
