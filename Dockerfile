@@ -1,18 +1,19 @@
-FROM golang:latest as builder
+FROM golang:latest AS builder
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
-COPY . .
+COPY . ./
 RUN go mod download
 
-RUN CGO_ENABLED=1 go build -o bskyfeed .
+COPY . .
+
+RUN CGO_ENABLED=1 GOOS=linux go build -o bskyfeed .
 
 FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates libgcc
 
-WORKDIR /app
+WORKDIR /root
 COPY --from=builder /app/bskyfeed .
-
-ENTRYPOINT ["./bskyfeed"]
+CMD ["/bskyfeed"]
