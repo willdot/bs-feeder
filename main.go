@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/avast/retry-go/v4"
+	"github.com/bugsnag/bugsnag-go/v2"
 )
 
 const (
@@ -20,6 +22,17 @@ func main() {
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	bugsnagAPIKey := os.Getenv("BUGSNAG_API_KEY")
+	if bugsnagAPIKey != "" {
+		bugsnag.Configure(bugsnag.Configuration{
+			APIKey:       bugsnagAPIKey,
+			ReleaseStage: "production",
+			// The import paths for the Go packages containing your source files
+			ProjectPackages: []string{"main", "github.com/willdot/bskyfeedgen"},
+			// more configuration options
+		})
+	}
 
 	feeder := NewFeedGenerator()
 
@@ -58,6 +71,7 @@ func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator
 			if errors.Is(err, context.Canceled) {
 				return nil
 			}
+			bugsnag.Notify(fmt.Errorf("consume loop: %w", err))
 			slog.Error("consume loop", "error", err)
 			return err
 		}
