@@ -50,7 +50,7 @@ func (con *consumer) Consume(ctx context.Context, feedGen *FeedGenerator, logger
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 
-	cursor := time.Now().Add(5 * -time.Minute).UnixMicro()
+	cursor := time.Now().Add(1 * -time.Minute).UnixMicro()
 
 	if err := c.ConnectAndRead(ctx, &cursor); err != nil {
 		return fmt.Errorf("connect and read: %w", err)
