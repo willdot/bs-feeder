@@ -171,6 +171,7 @@ func getSubscriptionsForParent(db *sql.DB, parentURI string) ([]string, error) {
 	return dids, nil
 }
 
+// urh
 func addSubscriptionForParent(db *sql.DB, parentURI, userDid, subscriptionRkey string) error {
 	sql := `INSERT INTO subscriptions (parentURI, userDID, subscriptionRkey) VALUES (?, ?, ?) ON CONFLICT(parentURI, userDID) DO NOTHING;`
 	_, err := db.Exec(sql, parentURI, userDid, subscriptionRkey)
