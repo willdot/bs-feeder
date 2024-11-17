@@ -107,6 +107,7 @@ type feedItem struct {
 }
 
 func addFeedItem(_ context.Context, db *sql.DB, feedItem feedItem) error {
+	slog.Info("add feed item", "parenturi", feedItem.parentURI, "user did", feedItem.UserDID)
 	sql := `INSERT INTO feed (uri, userDID, parentURI) VALUES (?, ?, ?) ON CONFLICT(uri, userDID) DO NOTHING;`
 	_, err := db.Exec(sql, feedItem.URI, feedItem.UserDID, feedItem.parentURI)
 	if err != nil {
@@ -139,7 +140,12 @@ func deleteFeedItemsForParentURIandUserDID(db *sql.DB, parentURI, userDID string
 	slog.Info("delete feed", "parent uri", parentURI, "userdid", userDID)
 
 	sql := "DELETE FROM feed WHERE uri = ? AND userDID = ?;"
-	res, err := db.Exec(sql, parentURI, userDID)
+	statement, err := db.Prepare(sql)
+	if err != nil {
+		return fmt.Errorf("prepare delete feed items: %w", err)
+	}
+	res, err := statement.Exec(parentURI, userDID)
+	// res, err := db.Exec(sql, parentURI, userDID)
 	if err != nil {
 		return fmt.Errorf("exec delete feed items: %w", err)
 	}
