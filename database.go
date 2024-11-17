@@ -5,26 +5,19 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
-	"os"
 
 	"github.com/bugsnag/bugsnag-go/v2"
 	_ "github.com/glebarez/go-sqlite"
 )
 
-func db() {
-	os.Remove("sqlite-database.db") // I delete the file to avoid duplicated records.
-	// SQLite is a file based database.
+const (
+	dbfile = "./data/sqlite-database.db"
+)
 
-	log.Println("Creating sqlite-database.db...")
-	file, err := os.Create("sqlite-database.db") // Create SQLite file
-	if err != nil {
-		bugsnag.Notify(fmt.Errorf("create db: %w", err))
-		return
-	}
-	file.Close()
+func db() {
 	log.Println("sqlite-database.db created")
 
-	sqliteDatabase, _ := sql.Open("sqlite", "./sqlite-database.db") // Open the created SQLite File
+	sqliteDatabase, _ := sql.Open("sqlite", dbfile) // Open the created SQLite File
 	defer sqliteDatabase.Close()
 
 	createTable(sqliteDatabase)
