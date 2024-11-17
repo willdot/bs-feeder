@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/gorilla/websocket"
+	"github.com/avast/retry-go/v4"
 )
 
 const (
@@ -51,24 +51,16 @@ func main() {
 
 func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator) {
 	consumer := NewConsumer(jsServerAddr)
-	continueCount := 0
-	for {
+
+	retry.Do(func() error {
 		err := consumer.Consume(ctx, feeder, slog.Default())
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				return
+				return nil
 			}
-
-			var closeErr *websocket.CloseError
-			if errors.As(err, &closeErr) {
-				if closeErr.Code == websocket.CloseAbnormalClosure && continueCount <= 100 {
-					slog.Error("consume - trying again", "error", err)
-					continueCount++
-					continue
-				}
-			}
-			slog.Error("consume - exiting gracefully", "error", err)
-			return
+			slog.Error("consume loop", "error", err)
+			return err
 		}
-	}
+		return nil
+	}, retry.Attempts(0))
 }
