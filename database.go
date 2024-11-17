@@ -182,7 +182,7 @@ func addSubscriptionForParent(db *sql.DB, parentURI, userDid, subscriptionRkey s
 }
 
 func getSubscribingPostParentURI(db *sql.DB, userDID, rkey string) (string, error) {
-	sql := "SELECT parentURI FROM subscriptions WHERE (subscriptionRkey = ? AND userDID = ?);"
+	sql := "SELECT parentURI FROM subscriptions WHERE subscriptionRkey = ? AND userDID = ?;"
 	rows, err := db.Query(sql, rkey, userDID)
 	if err != nil {
 		return "", fmt.Errorf("run query to get subscribing post parent URI: %w", err)
