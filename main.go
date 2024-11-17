@@ -49,6 +49,7 @@ func main() {
 
 	enableJS := os.Getenv("ENABLE_JETSTREAM")
 	if enableJS == "true" {
+		slog.Info("enabling jetstream consume")
 		go consumeLoop(ctx, jsServerAddr, feeder)
 	}
 
