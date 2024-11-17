@@ -47,7 +47,7 @@ func createDbFile(dbFilename string) error {
 }
 
 func createTable(db *sql.DB) {
-	createFeedTableSQL := `CREATE TABLE feed (
+	createFeedTableSQL := `CREATE TABLE IF NOT EXISTS feed (
 		"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
 		"uri" TEXT,
 		"userDID" TEXT
@@ -61,6 +61,7 @@ func createTable(db *sql.DB) {
 	}
 	_, err = statement.Exec()
 	if err != nil {
+		if errors.Is(sql., target error)
 		bugsnag.Notify(fmt.Errorf("exec sql statement: %w", err))
 		return
 	}
