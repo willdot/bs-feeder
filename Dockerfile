@@ -1,19 +1,21 @@
-FROM golang:latest AS builder
+# Use the Go 1.23 alpine official image
+# https://hub.docker.com/_/golang
+FROM golang:1.23-alpine
 
+# Create and change to the app directory.
 WORKDIR /app
 
+# Copy go mod and sum files
 COPY go.mod go.sum ./
+
+# Copy local code to the container image.
 COPY . ./
-RUN go mod download
 
-COPY . .
+# Install project dependencies
+RUN CGO_ENABLED=1  go mod download
 
-RUN CGO_ENABLED=1 GOOS=linux go build -o bskyfeed .
+# Build the app
+RUN go build -o app
 
-FROM alpine:latest
-
-RUN apk --no-cache add ca-certificates libgcc
-
-WORKDIR /root
-COPY --from=builder /app/bskyfeed .
-CMD ["bskyfeed"]
+# Run the service on container startup.
+ENTRYPOINT ["./app"]
