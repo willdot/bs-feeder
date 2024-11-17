@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/bugsnag/bugsnag-go/v2"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/glebarez/go-sqlite"
 )
 
 func db() {
@@ -24,7 +24,7 @@ func db() {
 	file.Close()
 	log.Println("sqlite-database.db created")
 
-	sqliteDatabase, _ := sql.Open("sqlite3", "./sqlite-database.db") // Open the created SQLite File
+	sqliteDatabase, _ := sql.Open("sqlite", "./sqlite-database.db") // Open the created SQLite File
 	defer sqliteDatabase.Close()
 
 	createTable(sqliteDatabase)
