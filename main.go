@@ -43,6 +43,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	db()
+
 	bugsnagAPIKey := os.Getenv("BUGSNAG_API_KEY")
 	if bugsnagAPIKey != "" {
 		bugsnag.Configure(bugsnag.Configuration{
