@@ -161,7 +161,7 @@ func getSubscriptionsForParent(db *sql.DB, parentURI string) ([]string, error) {
 }
 
 func addSubscriptionForParent(db *sql.DB, parentURI, userDid string) error {
-	sql := `INSERT INTO subscriptions (parentURI, userDID,) VALUES (?, ?);`
+	sql := `INSERT INTO subscriptions (parentURI, userDID) VALUES (?, ?);`
 	_, err := db.Exec(sql, parentURI, userDid)
 	if err != nil {
 		return fmt.Errorf("exec insert subscrptions: %w", err)
