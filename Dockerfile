@@ -12,7 +12,7 @@ FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates libgcc
 
-WORKDIR /root/
+WORKDIR /app
 COPY --from=builder /app/bskyfeed .
 
 ENTRYPOINT ["./bskyfeed"]
