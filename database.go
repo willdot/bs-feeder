@@ -145,7 +145,6 @@ func deleteFeedItemsForParentURIandUserDID(db *sql.DB, parentURI, userDID string
 		return fmt.Errorf("prepare delete feed items: %w", err)
 	}
 	res, err := statement.Exec(parentURI, userDID)
-	// res, err := db.Exec(sql, parentURI, userDID)
 	if err != nil {
 		return fmt.Errorf("exec delete feed items: %w", err)
 	}
