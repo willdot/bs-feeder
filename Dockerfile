@@ -15,4 +15,4 @@ RUN apk --no-cache add ca-certificates libgcc
 WORKDIR /root/
 COPY --from=builder /app/bskyfeed .
 
-CMD ["./bskyfeed"]
+ENTRYPOINT ["./bskyfeed"]
