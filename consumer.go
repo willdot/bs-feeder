@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"log/slog"
 	"strings"
 	"sync"
@@ -42,11 +41,12 @@ func (con *consumer) Consume(ctx context.Context, feedGen *FeedGenerator, logger
 	}
 
 	scheduler := sequential.NewScheduler("jetstream_localdev", logger, h.HandleEvent)
+	defer scheduler.Shutdown()
 
 	// TODO: logger
 	c, err := client.NewClient(con.cfg, slog.Default(), scheduler)
 	if err != nil {
-		log.Fatalf("failed to create client: %v", err)
+		return fmt.Errorf("failed to create client: %w", err)
 	}
 
 	cursor := time.Now().Add(5 * -time.Minute).UnixMicro()
@@ -115,7 +115,7 @@ func (h *handler) addDidToSubscribedParent(parentURI, did string) {
 	subscribedDids, ok := h.parentsToLookFor[parentURI]
 	if !ok {
 		h.parentsToLookFor[parentURI] = map[string]struct{}{
-			did: struct{}{},
+			did: {},
 		}
 		return
 	}

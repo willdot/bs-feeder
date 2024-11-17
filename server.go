@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/bugsnag/bugsnag-go/v2"
 )
 
 type Feeder interface {
@@ -46,6 +48,7 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string) *Server {
 func (s *Server) Run() {
 	err := s.httpsrv.ListenAndServe()
 	if err != nil {
+		bugsnag.Notify(fmt.Errorf("http server: %w", err))
 		slog.Error("listen and serve", "error", err)
 	}
 }
