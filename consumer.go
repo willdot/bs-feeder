@@ -68,42 +68,86 @@ type handler struct {
 }
 
 func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
-	// Unmarshal the record if there is one
 	if event.Commit == nil {
 		return nil
 	}
-	if event.Commit.Operation == models.CommitOperationCreate || event.Commit.Operation == models.CommitOperationUpdate {
-		switch event.Commit.Collection {
-		case "app.bsky.feed.post":
-			var post apibsky.FeedPost
-			if err := json.Unmarshal(event.Commit.Record, &post); err != nil {
-				return fmt.Errorf("failed to unmarshal post: %w", err)
-			}
 
-			// we only care about posts that have parents which are replies
-			if post.Reply == nil || post.Reply.Parent == nil || post.Reply.Parent.Uri == "" {
-				return nil
-			}
-
-			parentURI := post.Reply.Parent.Uri
-
-			// look for posts where I've "subsribed" so that we can add the parent URI to a list of replies to that parent to look for
-			if strings.Contains(post.Text, "/subscribe") && event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
-				slog.Info("a post that's subscribing to a parent. Adding to parents to look for", "parent URI", parentURI)
-				return h.addDidToSubscribedParent(parentURI, event.Did)
-			}
-
-			// see if the post is a reply to a post we are subscribed to
-			subscribedDids := h.getSubscribedDidsForParent(parentURI)
-			if len(subscribedDids) == 0 {
-				return nil
-			}
-
-			slog.Info("post is a reply to a parent that users are subscribed to", "parent URI", parentURI, "dids", subscribedDids, "RKey", event.Commit.RKey)
-
-			h.feedGenerator.AddToFeedPosts(subscribedDids, parentURI, fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey))
-		}
+	switch event.Commit.Operation {
+	case models.CommitOperationCreate:
+		return h.handleCreateEvent(ctx, event)
+	case models.CommitOperationDelete:
+		return h.handleDeleteEvent(ctx, event)
+	default:
+		return nil
 	}
+}
+
+func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) error {
+	if event.Commit.Collection != "app.bsky.feed.post" {
+		return nil
+	}
+
+	var post apibsky.FeedPost
+	if err := json.Unmarshal(event.Commit.Record, &post); err != nil {
+		return fmt.Errorf("failed to unmarshal post: %w", err)
+	}
+
+	// we only care about posts that have parents which are replies
+	if post.Reply == nil || post.Reply.Parent == nil || post.Reply.Parent.Uri == "" {
+		return nil
+	}
+
+	parentURI := post.Reply.Parent.Uri
+
+	// look for posts where I've "subsribed" so that we can add the parent URI to a list of replies to that parent to look for
+	if strings.Contains(post.Text, "/subscribe") && event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
+		slog.Info("a post that's subscribing to a parent. Adding to parents to look for", "parent URI", parentURI)
+		return h.addDidToSubscribedParent(parentURI, event.Did)
+	}
+
+	// see if the post is a reply to a post we are subscribed to
+	subscribedDids := h.getSubscribedDidsForParent(parentURI)
+	if len(subscribedDids) == 0 {
+		return nil
+	}
+
+	slog.Info("post is a reply to a parent that users are subscribed to", "parent URI", parentURI, "dids", subscribedDids, "RKey", event.Commit.RKey)
+
+	h.feedGenerator.AddToFeedPosts(subscribedDids, parentURI, fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey))
+	return nil
+}
+
+func (h *handler) handleDeleteEvent(_ context.Context, event *models.Event) error {
+	if event.Commit.Collection != "app.bsky.feed.post" {
+		return nil
+	}
+
+	var post apibsky.FeedPost
+	if err := json.Unmarshal(event.Commit.Record, &post); err != nil {
+		return fmt.Errorf("failed to unmarshal post: %w", err)
+	}
+
+	// we only care about posts that have parents which are replies
+	if post.Reply == nil || post.Reply.Parent == nil || post.Reply.Parent.Uri == "" {
+		return nil
+	}
+
+	parentURI := post.Reply.Parent.Uri
+
+	// delete from subscriptions for the parentURI and the users DID
+	err := deleteFeedItemsForParentURIandUserDID(h.db, parentURI, event.Did)
+	if err != nil {
+		slog.Error("delete feed items for parentURI and user", "error", err, "parentURI", parentURI, "user DID", event.Did)
+		return fmt.Errorf("delete feed items for parentURI and user: %w", err)
+	}
+
+	//  delete from feeds for the parentURI and the users DID
+	err = deleteSubscriptionForUser(h.db, event.Did, parentURI)
+	if err != nil {
+		slog.Error("delete subscription for user", "error", err, "parentURI", parentURI, "user DID", event.Did)
+		return fmt.Errorf("delete subscription and user: %w", err)
+	}
+
 	return nil
 }
 

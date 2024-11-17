@@ -115,7 +115,7 @@ func addFeedItem(_ context.Context, db *sql.DB, feedItem feedItem) error {
 }
 
 func getUsersFeedItems(db *sql.DB, usersDID string) ([]feedItem, error) {
-	sql := "SELECT id, uri, userDID FROM feed WHERE userDID = ?"
+	sql := "SELECT id, uri, userDID FROM feed WHERE userDID = ?;"
 	rows, err := db.Query(sql, usersDID)
 	if err != nil {
 		return nil, fmt.Errorf("run query to get users feed item: %w", err)
@@ -132,6 +132,15 @@ func getUsersFeedItems(db *sql.DB, usersDID string) ([]feedItem, error) {
 	}
 
 	return feedItems, nil
+}
+
+func deleteFeedItemsForParentURIandUserDID(db *sql.DB, parentURI, userDID string) error {
+	sql := "DELETE FROM feed WHERE (uri = ? AND userDID = ?);"
+	_, err := db.Exec(sql, parentURI, userDID)
+	if err != nil {
+		return fmt.Errorf("exec delete feed items: %w", err)
+	}
+	return nil
 }
 
 type subscription struct {
@@ -165,6 +174,15 @@ func addSubscriptionForParent(db *sql.DB, parentURI, userDid string) error {
 	_, err := db.Exec(sql, parentURI, userDid)
 	if err != nil {
 		return fmt.Errorf("exec insert subscrptions: %w", err)
+	}
+	return nil
+}
+
+func deleteSubscriptionForUser(db *sql.DB, userDID, parentURI string) error {
+	sql := "DELETE FROM subscription WHERE (parentURI = ? AND userDID = ?);"
+	_, err := db.Exec(sql, parentURI, userDID)
+	if err != nil {
+		return fmt.Errorf("exec delete subscription for user: %w", err)
 	}
 	return nil
 }
