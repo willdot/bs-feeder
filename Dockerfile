@@ -10,8 +10,7 @@ RUN CGO_ENABLED=1 go build -o bskyfeed .
 
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates
-RUN apt-get update && apt-get install -y gcc
+RUN apk --no-cache add ca-certificates libgcc
 
 WORKDIR /root/
 COPY --from=builder /app/bskyfeed .
