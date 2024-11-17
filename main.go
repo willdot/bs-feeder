@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/bugsnag/bugsnag-go/v2"
@@ -61,6 +62,9 @@ func main() {
 	}()
 
 	server.Run()
+
+	// give time for bugsnags to be sent
+	time.Sleep(time.Second)
 }
 
 func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator) {
