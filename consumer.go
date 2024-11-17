@@ -103,7 +103,7 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 	// look for posts where I've "subsribed" so that we can add the parent URI to a list of replies to that parent to look for
 	if strings.Contains(post.Text, "/subscribe") && event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
 		slog.Info("a post that's subscribing to a parent. Adding to parents to look for", "parent URI", parentURI)
-		return h.addDidToSubscribedParent(parentURI, event.Did)
+		return h.addDidToSubscribedParent(parentURI, event.Did, event.Commit.RKey)
 	}
 
 	// see if the post is a reply to a post we are subscribed to
@@ -133,32 +133,32 @@ func (h *handler) handleDeleteEvent(_ context.Context, event *models.Event) erro
 		slog.Info("delete event received", "post", fmt.Sprintf("%+v", post))
 	}
 
-	// we only care about posts that have parents which are replies
-	if post.Reply == nil || post.Reply.Parent == nil || post.Reply.Parent.Uri == "" {
-		return nil
-	}
-
-	parentURI := post.Reply.Parent.Uri
-
-	// delete from subscriptions for the parentURI and the users DID
-	err := deleteFeedItemsForParentURIandUserDID(h.db, parentURI, event.Did)
+	parentURI, err := getSubscribingPostParentURI(h.db, event.Did, event.Commit.RKey)
 	if err != nil {
-		slog.Error("delete feed items for parentURI and user", "error", err, "parentURI", parentURI, "user DID", event.Did)
-		return fmt.Errorf("delete feed items for parentURI and user: %w", err)
+		slog.Error("get subscribing post parent URI", "error", err, "rkey", event.Commit.RKey, "user DID", event.Did)
+		return fmt.Errorf("get subscribing post parent URI: %w", err)
 	}
 
-	//  delete from feeds for the parentURI and the users DID
+	//  delete from feeds for the parentURI and the users DID first. This is so that if this fails, it can be tried again and the
+	// subscription will be still there
 	err = deleteSubscriptionForUser(h.db, event.Did, parentURI)
 	if err != nil {
 		slog.Error("delete subscription for user", "error", err, "parentURI", parentURI, "user DID", event.Did)
 		return fmt.Errorf("delete subscription and user: %w", err)
 	}
 
+	// delete from subscriptions for the parentURI and the users DID now that we have cleaned up the feeds
+	err = deleteFeedItemsForParentURIandUserDID(h.db, parentURI, event.Did)
+	if err != nil {
+		slog.Error("delete feed items for parentURI and user", "error", err, "parentURI", parentURI, "user DID", event.Did)
+		return fmt.Errorf("delete feed items for parentURI and user: %w", err)
+	}
+
 	return nil
 }
 
-func (h *handler) addDidToSubscribedParent(parentURI, userDid string) error {
-	err := addSubscriptionForParent(h.db, parentURI, userDid)
+func (h *handler) addDidToSubscribedParent(parentURI, userDid, rkey string) error {
+	err := addSubscriptionForParent(h.db, parentURI, userDid, rkey)
 	if err != nil {
 		return fmt.Errorf("add subscription for parent: %w", err)
 	}

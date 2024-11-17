@@ -81,7 +81,8 @@ func createSubscriptionsTable(db *sql.DB) error {
 		"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
 		"parentURI" TEXT,
 		"userDID" TEXT,
-		UNIQUE(parentURI, userDID)
+		"subscriptionRkey" TEXT,
+		UNIQUE(parentURI, userDID, subscriptionRkey)
 	  );`
 
 	slog.Info("Create subscriptions table...")
@@ -144,9 +145,10 @@ func deleteFeedItemsForParentURIandUserDID(db *sql.DB, parentURI, userDID string
 }
 
 type subscription struct {
-	ID        int
-	ParentURI string
-	UserDID   string
+	ID               int
+	ParentURI        string
+	UserDID          string
+	SubecriptionRkey string
 }
 
 func getSubscriptionsForParent(db *sql.DB, parentURI string) ([]string, error) {
@@ -169,13 +171,33 @@ func getSubscriptionsForParent(db *sql.DB, parentURI string) ([]string, error) {
 	return dids, nil
 }
 
-func addSubscriptionForParent(db *sql.DB, parentURI, userDid string) error {
-	sql := `INSERT INTO subscriptions (parentURI, userDID) VALUES (?, ?) ON CONFLICT(parentURI, userDID) DO NOTHING;`
-	_, err := db.Exec(sql, parentURI, userDid)
+func addSubscriptionForParent(db *sql.DB, parentURI, userDid, subscriptionRkey string) error {
+	sql := `INSERT INTO subscriptions (parentURI, userDID, subscriptionRkey) VALUES (?, ?, ?) ON CONFLICT(parentURI, userDID) DO NOTHING;`
+	_, err := db.Exec(sql, parentURI, userDid, subscriptionRkey)
 	if err != nil {
 		return fmt.Errorf("exec insert subscrptions: %w", err)
 	}
 	return nil
+}
+
+func getSubscribingPostParentURI(db *sql.DB, userDID, rkey string) (string, error) {
+	sql := "SELECT parentURI FROM subscriptions WHERE (subscriptionRkey = ? AND userDID = ?);"
+	rows, err := db.Query(sql, rkey, userDID)
+	if err != nil {
+		return "", fmt.Errorf("run query to get subscribing post parent URI: %w", err)
+	}
+	defer rows.Close()
+
+	parentURI := ""
+	for rows.Next() {
+		var subscription subscription
+		if err := rows.Scan(&subscription.ID, &subscription.ParentURI, &subscription.UserDID); err != nil {
+			return "", fmt.Errorf("scan row: %w", err)
+		}
+		parentURI = subscription.ParentURI
+		break
+	}
+	return parentURI, nil
 }
 
 func deleteSubscriptionForUser(db *sql.DB, userDID, parentURI string) error {
