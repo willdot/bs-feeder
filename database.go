@@ -195,6 +195,9 @@ func getSubscribingPostParentURI(db *sql.DB, userDID, rkey string) (string, erro
 		if err := rows.Scan(&subscription.ID, &subscription.ParentURI); err != nil {
 			return "", fmt.Errorf("scan row: %w", err)
 		}
+
+		slog.Info("record", "val", subscription)
+
 		parentURI = subscription.ParentURI
 		break
 	}
