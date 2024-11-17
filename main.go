@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -12,11 +14,28 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/bugsnag/bugsnag-go/v2"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const (
 	jsServerAddr = "wss://jetstream.atproto.tools/subscribe"
 )
+
+func db() {
+	os.Remove("sqlite-database.db") // I delete the file to avoid duplicated records.
+	// SQLite is a file based database.
+
+	log.Println("Creating sqlite-database.db...")
+	file, err := os.Create("sqlite-database.db") // Create SQLite file
+	if err != nil {
+		bugsnag.Notify(fmt.Errorf("create db: %w", err))
+	}
+	file.Close()
+	log.Println("sqlite-database.db created")
+
+	sqliteDatabase, _ := sql.Open("sqlite3", "./sqlite-database.db") // Open the created SQLite File
+	defer sqliteDatabase.Close()                                     // Defer Closing the database
+}
 
 func main() {
 	signals := make(chan os.Signal, 1)
