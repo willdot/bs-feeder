@@ -76,8 +76,7 @@ type feedItem struct {
 }
 
 func addFeedItem(_ context.Context, db *sql.DB, feedItem feedItem) error {
-	sql := `INSERT INTO feed (uri, userDID)
-            VALUES (?, ?, ?);`
+	sql := `INSERT INTO feed (uri, userDID) VALUES (?, ?);`
 	_, err := db.Exec(sql, feedItem.URI, feedItem.UserDID)
 	if err != nil {
 		return fmt.Errorf("exec insert feed item: %w", err)
