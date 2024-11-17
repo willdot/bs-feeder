@@ -3,19 +3,19 @@ package main
 import (
 	"context"
 	"database/sql"
-	"sync"
+	"fmt"
+	"log/slog"
+
+	"github.com/bugsnag/bugsnag-go/v2"
 )
 
 type FeedGenerator struct {
-	db    *sql.DB
-	mu    sync.Mutex
-	posts map[string][]string
+	db *sql.DB
 }
 
 func NewFeedGenerator(db *sql.DB) *FeedGenerator {
 	return &FeedGenerator{
-		db:    db,
-		posts: make(map[string][]string),
+		db: db,
 	}
 }
 
@@ -24,18 +24,15 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor strin
 		Feed: make([]FeedItem, 0, 0),
 	}
 
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	usersFeed, ok := f.posts[userDID]
-	if !ok {
-		return resp, nil
+	usersFeed, err := getUsersFeedItems(f.db, userDID)
+	if err != nil {
+		return resp, fmt.Errorf("get users feed items from DB: %w", err)
 	}
 
 	feedItems := make([]FeedItem, 0, len(usersFeed))
 	for _, post := range usersFeed {
 		feedItems = append(feedItems, FeedItem{
-			Post: post,
+			Post: post.URI,
 		})
 	}
 
@@ -46,16 +43,16 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor strin
 }
 
 func (f *FeedGenerator) AddToFeedPosts(usersDids []string, postURI string) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
 	for _, did := range usersDids {
-		// TODO: store this in DB instead
-		usersPosts, ok := f.posts[did]
-		if !ok {
-			usersPosts = make([]string, 0, 1)
+		feedItem := feedItem{
+			URI:     postURI,
+			UserDID: did,
 		}
-
-		usersPosts = append(usersPosts, postURI)
-		f.posts[did] = usersPosts
+		err := addFeedItem(context.Background(), f.db, feedItem)
+		if err != nil {
+			slog.Error("add users feed item", "error", err, "did", did, "uri", postURI)
+			bugsnag.Notify(err)
+			continue
+		}
 	}
 }

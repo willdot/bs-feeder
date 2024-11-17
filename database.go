@@ -1,13 +1,13 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 
-	"github.com/bugsnag/bugsnag-go/v2"
 	_ "github.com/glebarez/go-sqlite"
 )
 
@@ -75,23 +75,32 @@ type feedItem struct {
 	UserDID string
 }
 
-func read(db *sql.DB) {
-	rows, err := db.Query("SELECT id, uri, userDID FROM feed")
+func addFeedItem(_ context.Context, db *sql.DB, feedItem feedItem) error {
+	sql := `INSERT INTO feed (uri, userDID)
+            VALUES (?, ?, ?);`
+	_, err := db.Exec(sql, feedItem.URI, feedItem.UserDID)
 	if err != nil {
-		bugsnag.Notify(fmt.Errorf("db query: %w", err))
-		return
+		return fmt.Errorf("exec insert feed item: %w", err)
 	}
-	defer rows.Close() // Ensure rows are closed after processing
+	return nil
+}
 
-	feedItems := make([]feedItem, 0) // Slice to store todos
+func getUsersFeedItems(db *sql.DB, usersDID string) ([]feedItem, error) {
+	sql := "SELECT id, uri, userDID FROM feed WHERE userDID = ?"
+	rows, err := db.Query(sql, usersDID)
+	if err != nil {
+		return nil, fmt.Errorf("run query to get users feed item: %w", err)
+	}
+	defer rows.Close()
+
+	feedItems := make([]feedItem, 0)
 	for rows.Next() {
 		var feedItem feedItem
 		if err := rows.Scan(&feedItem.ID, &feedItem.URI, &feedItem.UserDID); err != nil {
-			bugsnag.Notify(fmt.Errorf("db scan: %w", err))
-			return
+			return nil, fmt.Errorf("scan row: %w", err)
 		}
 		feedItems = append(feedItems, feedItem)
 	}
 
-	slog.Info("feed items read", "values", feedItems)
+	return feedItems, nil
 }
