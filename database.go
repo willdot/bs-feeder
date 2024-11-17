@@ -76,8 +76,8 @@ func createFeedTable(db *sql.DB) error {
 	return nil
 }
 
-func createSubscriptionTable(db *sql.DB) error {
-	createSubscriptionTableSQL := `CREATE TABLE IF NOT EXISTS subscriptions (
+func createSubscriptionTables(db *sql.DB) error {
+	createSubscriptionsTableSQL := `CREATE TABLE IF NOT EXISTS subscriptions (
 		"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
 		"parentURI" TEXT,
 		"userDID" TEXT,
@@ -85,7 +85,7 @@ func createSubscriptionTable(db *sql.DB) error {
 	  );`
 
 	slog.Info("Create subscriptions table...")
-	statement, err := db.Prepare(createSubscriptionTableSQL)
+	statement, err := db.Prepare(createSubscriptionsTableSQL)
 	if err != nil {
 		return fmt.Errorf("prepare DB statement to create subscriptions table: %w", err)
 	}
@@ -93,7 +93,7 @@ func createSubscriptionTable(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("exec sql statement to create subscriptions table: %w", err)
 	}
-	slog.Info("feed subscriptions created")
+	slog.Info("subscriptions table created")
 
 	return nil
 }
@@ -141,7 +141,7 @@ type subscription struct {
 }
 
 func getSubscriptionsForParent(db *sql.DB, parentURI string) ([]string, error) {
-	sql := "SELECT id, parentURI, userDID FROM subscription WHERE parentURI = ?"
+	sql := "SELECT id, parentURI, userDID FROM subscriptions WHERE parentURI = ?"
 	rows, err := db.Query(sql, parentURI)
 	if err != nil {
 		return nil, fmt.Errorf("run query to get subscriptions: %w", err)
@@ -164,7 +164,7 @@ func addSubscriptionForParent(db *sql.DB, parentURI, userDid string) error {
 	sql := `INSERT INTO subscriptions (parentURI, userDID,) VALUES (?, ?);`
 	_, err := db.Exec(sql, parentURI, userDid)
 	if err != nil {
-		return fmt.Errorf("exec insert subscrption: %w", err)
+		return fmt.Errorf("exec insert subscrptions: %w", err)
 	}
 	return nil
 }
