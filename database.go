@@ -6,36 +6,39 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path"
 
 	"github.com/bugsnag/bugsnag-go/v2"
 	_ "github.com/glebarez/go-sqlite"
 )
 
-const (
-	dbfile = "./data/database.db"
-)
-
 func db() {
-	err := createDbFile()
+	mountPath := os.Getenv("RAILWAY_VOLUME_MOUNT_PATH")
+	if mountPath == "" {
+		bugsnag.Notify(fmt.Errorf("RAILWAY_VOLUME_MOUNT_PATH env not set"))
+		return
+	}
+	dbFilename := path.Join(mountPath, "database.db")
+	err := createDbFile(dbFilename)
 	if err != nil {
 		slog.Error("create db file", "error", err)
 		bugsnag.Notify(err)
 		return
 	}
 
-	sqliteDatabase, _ := sql.Open("sqlite", dbfile) // Open the created SQLite File
+	sqliteDatabase, _ := sql.Open("sqlite", dbFilename) // Open the created SQLite File
 	defer sqliteDatabase.Close()
 
 	createTable(sqliteDatabase)
 	read(sqliteDatabase)
 }
 
-func createDbFile() error {
-	if _, err := os.Stat(dbfile); !errors.Is(err, os.ErrNotExist) {
+func createDbFile(dbFilename string) error {
+	if _, err := os.Stat(dbFilename); !errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 
-	f, err := os.Create(dbfile)
+	f, err := os.Create(dbFilename)
 	if err != nil {
 		return fmt.Errorf("create db file : %w", err)
 	}
