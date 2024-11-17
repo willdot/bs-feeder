@@ -32,6 +32,11 @@ func NewDatabase(dbPath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("creating feed table: %w", err)
 	}
 
+	err = createSubscriptionTable(db)
+	if err != nil {
+		return nil, fmt.Errorf("creating subscription table: %w", err)
+	}
+
 	return db, nil
 }
 
@@ -52,32 +57,57 @@ func createFeedTable(db *sql.DB) error {
 	createFeedTableSQL := `CREATE TABLE IF NOT EXISTS feed (
 		"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
 		"uri" TEXT,
-		"userDID" TEXT
+		"userDID" TEXT,
+		"parentURI" TEXT,
+		UNIQUE(uri, userDID)
 	  );`
 
 	slog.Info("Create feed table...")
 	statement, err := db.Prepare(createFeedTableSQL)
 	if err != nil {
-		return fmt.Errorf("prepare DB statement to create table: %w", err)
+		return fmt.Errorf("prepare DB statement to create feeds table: %w", err)
 	}
 	_, err = statement.Exec()
 	if err != nil {
-		return fmt.Errorf("exec sql statement to create table: %w", err)
+		return fmt.Errorf("exec sql statement to create feeds table: %w", err)
 	}
 	slog.Info("feed table created")
 
 	return nil
 }
 
+func createSubscriptionTable(db *sql.DB) error {
+	createSubscriptionTableSQL := `CREATE TABLE IF NOT EXISTS subscriptions (
+		"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
+		"parentURI" TEXT,
+		"userDID" TEXT,
+		UNIQUE(parentURI, userDID)
+	  );`
+
+	slog.Info("Create subscriptions table...")
+	statement, err := db.Prepare(createSubscriptionTableSQL)
+	if err != nil {
+		return fmt.Errorf("prepare DB statement to create subscriptions table: %w", err)
+	}
+	_, err = statement.Exec()
+	if err != nil {
+		return fmt.Errorf("exec sql statement to create subscriptions table: %w", err)
+	}
+	slog.Info("feed subscriptions created")
+
+	return nil
+}
+
 type feedItem struct {
-	ID      int
-	URI     string
-	UserDID string
+	ID        int
+	URI       string
+	UserDID   string
+	parentURI string
 }
 
 func addFeedItem(_ context.Context, db *sql.DB, feedItem feedItem) error {
-	sql := `INSERT INTO feed (uri, userDID) VALUES (?, ?);`
-	_, err := db.Exec(sql, feedItem.URI, feedItem.UserDID)
+	sql := `INSERT INTO feed (uri, userDID, parentURI) VALUES (?, ?, ?);`
+	_, err := db.Exec(sql, feedItem.URI, feedItem.UserDID, feedItem.parentURI)
 	if err != nil {
 		return fmt.Errorf("exec insert feed item: %w", err)
 	}
@@ -102,4 +132,39 @@ func getUsersFeedItems(db *sql.DB, usersDID string) ([]feedItem, error) {
 	}
 
 	return feedItems, nil
+}
+
+type subscription struct {
+	ID        int
+	ParentURI string
+	UserDID   string
+}
+
+func getSubscriptionsForParent(db *sql.DB, parentURI string) ([]string, error) {
+	sql := "SELECT id, parentURI, userDID FROM subscription WHERE parentURI = ?"
+	rows, err := db.Query(sql, parentURI)
+	if err != nil {
+		return nil, fmt.Errorf("run query to get subscriptions: %w", err)
+	}
+	defer rows.Close()
+
+	dids := make([]string, 0)
+	for rows.Next() {
+		var subscription subscription
+		if err := rows.Scan(&subscription.ID, &subscription.ParentURI, &subscription.UserDID); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+		dids = append(dids, subscription.UserDID)
+	}
+
+	return dids, nil
+}
+
+func addSubscriptionForParent(db *sql.DB, parentURI, userDid string) error {
+	sql := `INSERT INTO subscriptions (parentURI, userDID,) VALUES (?, ?);`
+	_, err := db.Exec(sql, parentURI, userDid)
+	if err != nil {
+		return fmt.Errorf("exec insert subscrption: %w", err)
+	}
+	return nil
 }

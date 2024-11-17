@@ -42,11 +42,12 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor strin
 	return resp, nil
 }
 
-func (f *FeedGenerator) AddToFeedPosts(usersDids []string, postURI string) {
+func (f *FeedGenerator) AddToFeedPosts(usersDids []string, parentURI, postURI string) {
 	for _, did := range usersDids {
 		feedItem := feedItem{
-			URI:     postURI,
-			UserDID: did,
+			URI:       postURI,
+			UserDID:   did,
+			parentURI: parentURI,
 		}
 		err := addFeedItem(context.Background(), f.db, feedItem)
 		if err != nil {

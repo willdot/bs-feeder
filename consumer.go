@@ -2,17 +2,18 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
-	"sync"
 	"time"
 
 	apibsky "github.com/bluesky-social/indigo/api/bsky"
 	"github.com/bluesky-social/jetstream/pkg/client"
 	"github.com/bluesky-social/jetstream/pkg/client/schedulers/sequential"
 	"github.com/bluesky-social/jetstream/pkg/models"
+	"github.com/bugsnag/bugsnag-go/v2"
 )
 
 type consumer struct {
@@ -35,9 +36,9 @@ func NewConsumer(jsAddr string) *consumer {
 
 func (con *consumer) Consume(ctx context.Context, feedGen *FeedGenerator, logger *slog.Logger) error {
 	h := &handler{
-		seenSeqs:         make(map[int64]struct{}),
-		feedGenerator:    feedGen,
-		parentsToLookFor: make(map[string]map[string]struct{}),
+		seenSeqs:      make(map[int64]struct{}),
+		feedGenerator: feedGen,
+		db:            feedGen.db,
 	}
 
 	scheduler := sequential.NewScheduler("jetstream_localdev", logger, h.HandleEvent)
@@ -60,11 +61,10 @@ func (con *consumer) Consume(ctx context.Context, feedGen *FeedGenerator, logger
 }
 
 type handler struct {
-	seenSeqs         map[int64]struct{}
-	highwater        int64
-	feedGenerator    *FeedGenerator
-	mu               sync.Mutex
-	parentsToLookFor map[string]map[string]struct{}
+	seenSeqs      map[int64]struct{}
+	highwater     int64
+	feedGenerator *FeedGenerator
+	db            *sql.DB
 }
 
 func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
@@ -90,8 +90,7 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 			// look for posts where I've "subsribed" so that we can add the parent URI to a list of replies to that parent to look for
 			if strings.Contains(post.Text, "/subscribe") && event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
 				slog.Info("a post that's subscribing to a parent. Adding to parents to look for", "parent URI", parentURI)
-				h.addDidToSubscribedParent(parentURI, event.Did)
-				return nil
+				return h.addDidToSubscribedParent(parentURI, event.Did)
 			}
 
 			// see if the post is a reply to a post we are subscribed to
@@ -102,40 +101,25 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 
 			slog.Info("post is a reply to a parent that users are subscribed to", "parent URI", parentURI, "dids", subscribedDids, "RKey", event.Commit.RKey)
 
-			h.feedGenerator.AddToFeedPosts(subscribedDids, fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey))
+			h.feedGenerator.AddToFeedPosts(subscribedDids, parentURI, fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey))
 		}
 	}
 	return nil
 }
 
-func (h *handler) addDidToSubscribedParent(parentURI, did string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	subscribedDids, ok := h.parentsToLookFor[parentURI]
-	if !ok {
-		h.parentsToLookFor[parentURI] = map[string]struct{}{
-			did: {},
-		}
-		return
+func (h *handler) addDidToSubscribedParent(parentURI, userDid string) error {
+	err := addSubscriptionForParent(h.db, parentURI, userDid)
+	if err != nil {
+		return fmt.Errorf("add subscription for parent: %w", err)
 	}
-
-	subscribedDids[did] = struct{}{}
-	h.parentsToLookFor[parentURI] = subscribedDids
+	return nil
 }
 
 func (h *handler) getSubscribedDidsForParent(parentURI string) []string {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	subscribedDids, ok := h.parentsToLookFor[parentURI]
-	if !ok {
-		return nil
-	}
-
-	dids := make([]string, 0, len(subscribedDids))
-	for did := range subscribedDids {
-		dids = append(dids, did)
+	dids, err := getSubscriptionsForParent(h.db, parentURI)
+	if err != nil {
+		slog.Error("getting subscriptions for parent", "error", err)
+		bugsnag.Notify(err)
 	}
 
 	return dids
