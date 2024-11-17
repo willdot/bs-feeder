@@ -106,7 +106,7 @@ type feedItem struct {
 }
 
 func addFeedItem(_ context.Context, db *sql.DB, feedItem feedItem) error {
-	sql := `INSERT INTO feed (uri, userDID, parentURI) VALUES (?, ?, ?);`
+	sql := `INSERT INTO feed (uri, userDID, parentURI) VALUES (?, ?, ?) ON CONFLICT(uri, userDID) DO NOTHING;`
 	_, err := db.Exec(sql, feedItem.URI, feedItem.UserDID, feedItem.parentURI)
 	if err != nil {
 		return fmt.Errorf("exec insert feed item: %w", err)
@@ -161,7 +161,7 @@ func getSubscriptionsForParent(db *sql.DB, parentURI string) ([]string, error) {
 }
 
 func addSubscriptionForParent(db *sql.DB, parentURI, userDid string) error {
-	sql := `INSERT INTO subscriptions (parentURI, userDID) VALUES (?, ?);`
+	sql := `INSERT INTO subscriptions (parentURI, userDID) VALUES (?, ?) ON CONFLICT(parentURI, userDID) DO NOTHING;`
 	_, err := db.Exec(sql, parentURI, userDid)
 	if err != nil {
 		return fmt.Errorf("exec insert subscrptions: %w", err)
