@@ -2,26 +2,45 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
-	"log"
 	"log/slog"
+	"os"
 
 	"github.com/bugsnag/bugsnag-go/v2"
 	_ "github.com/glebarez/go-sqlite"
 )
 
 const (
-	dbfile = "./data/sqlite-database.db"
+	dbfile = "./data/database.db"
 )
 
 func db() {
-	log.Println("sqlite-database.db created")
+	err := createDbFile()
+	if err != nil {
+		slog.Error("create db file", "error", err)
+		bugsnag.Notify(err)
+		return
+	}
 
 	sqliteDatabase, _ := sql.Open("sqlite", dbfile) // Open the created SQLite File
 	defer sqliteDatabase.Close()
 
 	createTable(sqliteDatabase)
 	read(sqliteDatabase)
+}
+
+func createDbFile() error {
+	if _, err := os.Stat(dbfile); !errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+
+	f, err := os.Create(dbfile)
+	if err != nil {
+		return fmt.Errorf("create db file : %w", err)
+	}
+	f.Close()
+	return nil
 }
 
 func createTable(db *sql.DB) {
