@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path"
 	"syscall"
 	"time"
 
@@ -24,8 +25,6 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	db()
-
 	bugsnagAPIKey := os.Getenv("BUGSNAG_API_KEY")
 	if bugsnagAPIKey != "" {
 		bugsnag.Configure(bugsnag.Configuration{
@@ -37,7 +36,21 @@ func main() {
 		})
 	}
 
-	feeder := NewFeedGenerator()
+	dbMountPath := os.Getenv("RAILWAY_VOLUME_MOUNT_PATH")
+	if dbMountPath == "" {
+		bugsnag.Notify(fmt.Errorf("RAILWAY_VOLUME_MOUNT_PATH env not set"))
+		return
+	}
+	dbFilename := path.Join(dbMountPath, "database.db")
+	db, err := NewDatabase(dbFilename)
+	if err != nil {
+		slog.Error("create new database", "error", err)
+		bugsnag.Notify(err)
+		return
+	}
+	defer db.Close()
+
+	feeder := NewFeedGenerator(db)
 
 	feedDidBase := os.Getenv("FEED_DID_BASE")
 	if feedDidBase == "" {

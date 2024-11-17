@@ -2,16 +2,19 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"sync"
 )
 
 type FeedGenerator struct {
+	db    *sql.DB
 	mu    sync.Mutex
 	posts map[string][]string
 }
 
-func NewFeedGenerator() *FeedGenerator {
+func NewFeedGenerator(db *sql.DB) *FeedGenerator {
 	return &FeedGenerator{
+		db:    db,
 		posts: make(map[string][]string),
 	}
 }

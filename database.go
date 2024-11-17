@@ -6,31 +6,33 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path"
 
 	"github.com/bugsnag/bugsnag-go/v2"
 	_ "github.com/glebarez/go-sqlite"
 )
 
-func db() {
-	mountPath := os.Getenv("RAILWAY_VOLUME_MOUNT_PATH")
-	if mountPath == "" {
-		bugsnag.Notify(fmt.Errorf("RAILWAY_VOLUME_MOUNT_PATH env not set"))
-		return
-	}
-	dbFilename := path.Join(mountPath, "database.db")
-	err := createDbFile(dbFilename)
+func NewDatabase(dbPath string) (*sql.DB, error) {
+	err := createDbFile(dbPath)
 	if err != nil {
-		slog.Error("create db file", "error", err)
-		bugsnag.Notify(err)
-		return
+		return nil, fmt.Errorf("create db file: %w", err)
 	}
 
-	sqliteDatabase, _ := sql.Open("sqlite", dbFilename) // Open the created SQLite File
-	defer sqliteDatabase.Close()
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("open database: %w", err)
+	}
 
-	createTable(sqliteDatabase)
-	read(sqliteDatabase)
+	err = db.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("ping db: %w", err)
+	}
+
+	err = createFeedTable(db)
+	if err != nil {
+		return nil, fmt.Errorf("creating feed table: %w", err)
+	}
+
+	return db, nil
 }
 
 func createDbFile(dbFilename string) error {
@@ -46,7 +48,7 @@ func createDbFile(dbFilename string) error {
 	return nil
 }
 
-func createTable(db *sql.DB) {
+func createFeedTable(db *sql.DB) error {
 	createFeedTableSQL := `CREATE TABLE IF NOT EXISTS feed (
 		"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
 		"uri" TEXT,
@@ -56,21 +58,15 @@ func createTable(db *sql.DB) {
 	slog.Info("Create feed table...")
 	statement, err := db.Prepare(createFeedTableSQL)
 	if err != nil {
-		bugsnag.Notify(fmt.Errorf("prepare DB statement: %w", err))
-		return
+		return fmt.Errorf("prepare DB statement to create table: %w", err)
 	}
 	_, err = statement.Exec()
 	if err != nil {
-		bugsnag.Notify(fmt.Errorf("exec sql statement: %w", err))
-		return
+		return fmt.Errorf("exec sql statement to create table: %w", err)
 	}
 	slog.Info("feed table created")
 
-	_, err = db.Exec("INSERT INTO feed(uri, userDID) VALUES(?,?)", "hello", "world")
-	if err != nil {
-		bugsnag.Notify(fmt.Errorf("insert into table: %w", err))
-		return
-	}
+	return nil
 }
 
 type feedItem struct {
