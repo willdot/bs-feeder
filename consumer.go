@@ -89,7 +89,8 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 
 	var post apibsky.FeedPost
 	if err := json.Unmarshal(event.Commit.Record, &post); err != nil {
-		return fmt.Errorf("failed to unmarshal post: %w", err)
+		// ignore this
+		return nil
 	}
 
 	// we only care about posts that have parents which are replies
@@ -126,6 +127,10 @@ func (h *handler) handleDeleteEvent(_ context.Context, event *models.Event) erro
 	if err := json.Unmarshal(event.Commit.Record, &post); err != nil {
 		// ignore this
 		return nil
+	}
+
+	if event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
+		slog.Info("delete event received", "post", fmt.Sprintf("%+v", post))
 	}
 
 	// we only care about posts that have parents which are replies
