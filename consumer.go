@@ -123,14 +123,8 @@ func (h *handler) handleDeleteEvent(_ context.Context, event *models.Event) erro
 		return nil
 	}
 
-	var post apibsky.FeedPost
-	if err := json.Unmarshal(event.Commit.Record, &post); err != nil {
-		// ignore this
-		return nil
-	}
-
 	if event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
-		slog.Info("delete event received", "post", fmt.Sprintf("%+v", post))
+		slog.Info("delete event received")
 	}
 
 	parentURI, err := getSubscribingPostParentURI(h.db, event.Did, event.Commit.RKey)
