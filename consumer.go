@@ -123,9 +123,11 @@ func (h *handler) handleDeleteEvent(_ context.Context, event *models.Event) erro
 		return nil
 	}
 
-	if event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
-		slog.Info("delete event received")
+	// temp ignore everyone but me
+	if event.Did != "did:plc:dadhhalkfcq3gucaq25hjqon" {
+		return nil
 	}
+	slog.Info("delete event received")
 
 	parentURI, err := getSubscribingPostParentURI(h.db, event.Did, event.Commit.RKey)
 	if err != nil {
