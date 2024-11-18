@@ -139,7 +139,7 @@ func getUsersFeedItems(db *sql.DB, usersDID string) ([]feedItem, error) {
 func deleteFeedItemsForParentURIandUserDID(db *sql.DB, parentURI, userDID string) error {
 	slog.Info("delete feed", "parent uri", parentURI, "userdid", userDID)
 
-	sql := "DELETE FROM feed WHERE uri = ? AND userDID = ?;"
+	sql := "DELETE FROM feed WHERE parentURI = ? AND userDID = ?;"
 	statement, err := db.Prepare(sql)
 	if err != nil {
 		return fmt.Errorf("prepare delete feed items: %w", err)
