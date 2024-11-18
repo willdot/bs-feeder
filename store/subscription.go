@@ -57,7 +57,7 @@ func (s *Store) GetSubscriptionsForPost(postURI string) ([]string, error) {
 }
 
 func (s *Store) AddSubscriptionForPost(subscribedPostURI, userDid, subscriptionRkey string) error {
-	sql := `INSERT INTO subscriptions (subscribedPostURI, userDID, subscriptionRkey) VALUES (?, ?, ?) ON CONFLICT(subscribedPostURI, userDID) DO NOTHING;`
+	sql := `INSERT INTO subscriptions (subscribedPostURI, userDID, subscriptionPostRkey) VALUES (?, ?, ?) ON CONFLICT(subscribedPostURI, userDID) DO NOTHING;`
 	_, err := s.db.Exec(sql, subscribedPostURI, userDid, subscriptionRkey)
 	if err != nil {
 		return fmt.Errorf("exec insert subscrptions: %w", err)
@@ -66,7 +66,7 @@ func (s *Store) AddSubscriptionForPost(subscribedPostURI, userDid, subscriptionR
 }
 
 func (s *Store) GetSubscribedPostURI(userDID, rkey string) (string, error) {
-	sql := "SELECT id, subscribedPostURI FROM subscriptions WHERE subscriptionRkey = ? AND userDID = ?;"
+	sql := "SELECT id, subscribedPostURI FROM subscriptions WHERE subscriptionPostRkey = ? AND userDID = ?;"
 	rows, err := s.db.Query(sql, rkey, userDID)
 	if err != nil {
 		return "", fmt.Errorf("run query to get subscribed post URI: %w", err)
