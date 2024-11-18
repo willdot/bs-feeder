@@ -91,7 +91,6 @@ func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator
 			if errors.Is(err, context.Canceled) {
 				return nil
 			}
-			bugsnag.Notify(fmt.Errorf("consume loop: %w", err))
 			slog.Error("consume loop", "error", err)
 			return err
 		}
