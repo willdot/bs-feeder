@@ -154,8 +154,8 @@ func (h *handler) handleDeleteEvent(_ context.Context, event *models.Event) erro
 	return nil
 }
 
-func (h *handler) addDidToSubscribedPost(subscribedPostURI, userDid, rkey string) error {
-	err := h.store.AddSubscriptionForPost(subscribedPostURI, userDid, rkey)
+func (h *handler) addDidToSubscribedPost(subscribedPostURI, userDid, subscriptionPostRkey string) error {
+	err := h.store.AddSubscriptionForPost(subscribedPostURI, userDid, subscriptionPostRkey)
 	if err != nil {
 		return fmt.Errorf("add subscription for post: %w", err)
 	}
