@@ -19,17 +19,9 @@ const (
 	jsServerAddr = "wss://jetstream.atproto.tools/subscribe"
 )
 
-func configureLogger() {
-	minimumLevel := slog.LevelInfo
-	debugLogging := os.Getenv("ENABLE_DEBUG_LOGS")
-	if debugLogging == "true" {
-		minimumLevel = slog.LevelDebug
-	}
-	logger := logging.CreateLogger(minimumLevel)
-	slog.SetDefault(logger)
-}
-
 func main() {
+	configureLogger()
+
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
 	ctx, cancel := context.WithCancel(context.Background())
