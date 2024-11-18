@@ -13,6 +13,7 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/bugsnag/bugsnag-go/v2"
+	"github.com/willdot/bskyfeedgen/store"
 )
 
 const (
@@ -44,15 +45,16 @@ func main() {
 		return
 	}
 	dbFilename := path.Join(dbMountPath, "database.db")
-	db, err := NewDatabase(dbFilename)
+
+	store, err := store.New(dbFilename)
 	if err != nil {
-		slog.Error("create new database", "error", err)
+		slog.Error("create new store", "error", err)
 		bugsnag.Notify(err)
 		return
 	}
-	defer db.Close()
+	defer store.Close()
 
-	feeder := NewFeedGenerator(db)
+	feeder := NewFeedGenerator(store)
 
 	feedDidBase := os.Getenv("FEED_DID_BASE")
 	if feedDidBase == "" {
