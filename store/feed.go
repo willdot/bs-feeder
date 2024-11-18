@@ -29,55 +29,55 @@ func createFeedTable(db *sql.DB) error {
 	return nil
 }
 
-type FeedItem struct {
+type FeedPost struct {
 	ID                int
 	ReplyURI          string
 	UserDID           string
 	SubscribedPostURI string
 }
 
-func (s *Store) AddFeedItem(feedItem FeedItem) error {
+func (s *Store) AddFeedPost(feedPost FeedPost) error {
 	sql := `INSERT INTO feed (replyURI, userDID, subscribedPostURI) VALUES (?, ?, ?) ON CONFLICT(replyURI, userDID) DO NOTHING;`
-	_, err := s.db.Exec(sql, feedItem.ReplyURI, feedItem.UserDID, feedItem.SubscribedPostURI)
+	_, err := s.db.Exec(sql, feedPost.ReplyURI, feedPost.UserDID, feedPost.SubscribedPostURI)
 	if err != nil {
 		return fmt.Errorf("exec insert feed item: %w", err)
 	}
 	return nil
 }
 
-func (s *Store) GetUsersFeedItems(usersDID string) ([]FeedItem, error) {
+func (s *Store) GetUsersFeed(usersDID string) ([]FeedPost, error) {
 	sql := "SELECT id, replyURI, userDID FROM feed WHERE userDID = ?;"
 	rows, err := s.db.Query(sql, usersDID)
 	if err != nil {
-		return nil, fmt.Errorf("run query to get users feed item: %w", err)
+		return nil, fmt.Errorf("run query to get users feed posts: %w", err)
 	}
 	defer rows.Close()
 
-	feedItems := make([]FeedItem, 0)
+	feedPosts := make([]FeedPost, 0)
 	for rows.Next() {
-		var feedItem FeedItem
-		if err := rows.Scan(&feedItem.ID, &feedItem.ReplyURI, &feedItem.UserDID); err != nil {
+		var feedPost FeedPost
+		if err := rows.Scan(&feedPost.ID, &feedPost.ReplyURI, &feedPost.UserDID); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
-		feedItems = append(feedItems, feedItem)
+		feedPosts = append(feedPosts, feedPost)
 	}
 
-	return feedItems, nil
+	return feedPosts, nil
 }
 
-func (s *Store) DeleteFeedItemsForSubscribedPostURIandUserDID(subscribedPostURI, userDID string) error {
+func (s *Store) DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID string) error {
 	sql := "DELETE FROM feed WHERE subscribedPostURI = ? AND userDID = ?;"
 	statement, err := s.db.Prepare(sql)
 	if err != nil {
-		return fmt.Errorf("prepare delete feed items: %w", err)
+		return fmt.Errorf("prepare delete feed posts: %w", err)
 	}
 	res, err := statement.Exec(subscribedPostURI, userDID)
 	if err != nil {
-		return fmt.Errorf("exec delete feed items: %w", err)
+		return fmt.Errorf("exec delete feed posts: %w", err)
 	}
 
 	n, _ := res.RowsAffected()
 
-	slog.Info("delete feed res", "affected rows", n)
+	slog.Info("delete feed posts result", "affected rows", n)
 	return nil
 }

@@ -14,14 +14,22 @@ import (
 	"github.com/bluesky-social/jetstream/pkg/client/schedulers/sequential"
 	"github.com/bluesky-social/jetstream/pkg/models"
 	"github.com/bugsnag/bugsnag-go/v2"
-	"github.com/willdot/bskyfeedgen/store"
 )
 
-type consumer struct {
-	cfg *client.ClientConfig
+type ConsumerStore interface {
+	GetSubscriptionsForPost(postURI string) ([]string, error)
+	AddSubscriptionForPost(subscribedPostURI, userDid, subscriptionPostRkey string) error
+	GetSubscribedPostURI(userDID, subscriptionPostRkey string) (string, error)
+	DeleteSubscriptionForUser(userDID, postURI string) error
+	DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID string) error
 }
 
-func NewConsumer(jsAddr string) *consumer {
+type consumer struct {
+	cfg   *client.ClientConfig
+	store ConsumerStore
+}
+
+func NewConsumer(jsAddr string, store ConsumerStore) *consumer {
 	cfg := client.DefaultClientConfig()
 	if jsAddr != "" {
 		cfg.WebsocketURL = jsAddr
@@ -31,22 +39,21 @@ func NewConsumer(jsAddr string) *consumer {
 	}
 	cfg.WantedDids = []string{}
 	return &consumer{
-		cfg: cfg,
+		cfg:   cfg,
+		store: store,
 	}
 }
 
 func (con *consumer) Consume(ctx context.Context, feedGen *FeedGenerator, logger *slog.Logger) error {
 	h := &handler{
-		seenSeqs:      make(map[int64]struct{}),
 		feedGenerator: feedGen,
-		store:         *feedGen.store,
+		store:         con.store,
 	}
 
 	scheduler := sequential.NewScheduler("jetstream_localdev", logger, h.HandleEvent)
 	defer scheduler.Shutdown()
 
-	// TODO: logger
-	c, err := client.NewClient(con.cfg, slog.Default(), scheduler)
+	c, err := client.NewClient(con.cfg, logger, scheduler)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
@@ -62,10 +69,8 @@ func (con *consumer) Consume(ctx context.Context, feedGen *FeedGenerator, logger
 }
 
 type handler struct {
-	seenSeqs      map[int64]struct{}
-	highwater     int64
 	feedGenerator *FeedGenerator
-	store         store.Store
+	store         ConsumerStore
 }
 
 func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
@@ -102,7 +107,11 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 	subscribedPostURI := post.Reply.Parent.Uri
 
 	// look for posts that are "subscribe" so that we can add the post URI to a list of posts we want to find replies for
-	if strings.Contains(post.Text, "/subscribe") && event.Did == "did:plc:dadhhalkfcq3gucaq25hjqon" {
+	if strings.Contains(post.Text, "/subscribe") {
+		// For now just look for me
+		if event.Did != "did:plc:dadhhalkfcq3gucaq25hjqon" {
+			return nil
+		}
 		slog.Info("a post that's subscribing to another post. Adding to posts to look for", "subscribed post URI", subscribedPostURI)
 		return h.addDidToSubscribedPost(subscribedPostURI, event.Did, event.Commit.RKey)
 	}
@@ -138,7 +147,7 @@ func (h *handler) handleDeleteEvent(_ context.Context, event *models.Event) erro
 
 	//  delete from feeds for the subscribedPostURI and the users DID first. This is so that if this fails, it can be tried again and the
 	// subscription will be still there
-	err = h.store.DeleteFeedItemsForSubscribedPostURIandUserDID(subscribedPostURI, event.Did)
+	err = h.store.DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, event.Did)
 	if err != nil {
 		slog.Error("delete feed items for subscribedPostURI and user", "error", err, "subscribedPostURI", subscribedPostURI, "user DID", event.Did)
 		return fmt.Errorf("delete feed items for subscribedPostURI and user: %w", err)

@@ -70,7 +70,7 @@ func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
 
 	feed := params.Get("feed")
 	if feed == "" {
-		slog.Error("missing query param", "host", r.RemoteAddr)
+		slog.Error("missing feed query param", "host", r.RemoteAddr)
 		http.Error(w, "missing feed query param", http.StatusBadRequest)
 		return
 	}

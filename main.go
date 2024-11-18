@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -25,36 +24,9 @@ func main() {
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
+	enableJS := os.Getenv("ENABLE_JETSTREAM")
 	bugsnagAPIKey := os.Getenv("BUGSNAG_API_KEY")
-	if bugsnagAPIKey != "" {
-		bugsnag.Configure(bugsnag.Configuration{
-			APIKey:       bugsnagAPIKey,
-			ReleaseStage: "production",
-			// The import paths for the Go packages containing your source files
-			ProjectPackages: []string{"main", "github.com/willdot/bskyfeedgen"},
-			// more configuration options
-		})
-	}
-
-	dbMountPath := os.Getenv("RAILWAY_VOLUME_MOUNT_PATH")
-	if dbMountPath == "" {
-		bugsnag.Notify(fmt.Errorf("RAILWAY_VOLUME_MOUNT_PATH env not set"))
-		return
-	}
-	dbFilename := path.Join(dbMountPath, "database.db")
-
-	store, err := store.New(dbFilename)
-	if err != nil {
-		slog.Error("create new store", "error", err)
-		bugsnag.Notify(err)
-		return
-	}
-	defer store.Close()
-
-	feeder := NewFeedGenerator(store)
 
 	feedDidBase := os.Getenv("FEED_DID_BASE")
 	if feedDidBase == "" {
@@ -66,11 +38,40 @@ func main() {
 		slog.Error("FEED_HOST_NAME not set")
 		os.Exit(1)
 	}
+	dbMountPath := os.Getenv("RAILWAY_VOLUME_MOUNT_PATH")
+	if dbMountPath == "" {
+		slog.Error("RAILWAY_VOLUME_MOUNT_PATH env not set")
+		os.Exit(1)
+	}
 
-	enableJS := os.Getenv("ENABLE_JETSTREAM")
+	if bugsnagAPIKey != "" {
+		bugsnag.Configure(bugsnag.Configuration{
+			APIKey:       bugsnagAPIKey,
+			ReleaseStage: "production",
+			// The import paths for the Go packages containing your source files
+			ProjectPackages: []string{"main", "github.com/willdot/bskyfeedgen"},
+			// more configuration options
+			AutoCaptureSessions: false,
+		})
+	}
+
+	dbFilename := path.Join(dbMountPath, "database.db")
+	store, err := store.New(dbFilename)
+	if err != nil {
+		slog.Error("create new store", "error", err)
+		bugsnag.Notify(err)
+		return
+	}
+	defer store.Close()
+
+	feeder := NewFeedGenerator(store)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	if enableJS == "true" {
 		slog.Info("enabling jetstream consume")
-		go consumeLoop(ctx, jsServerAddr, feeder)
+		go consumeLoop(ctx, jsServerAddr, feeder, store)
 	}
 
 	server := NewServer(443, feeder, feedHost, feedDidBase)
@@ -86,8 +87,8 @@ func main() {
 	time.Sleep(time.Second)
 }
 
-func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator) {
-	consumer := NewConsumer(jsServerAddr)
+func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator, store *store.Store) {
+	consumer := NewConsumer(jsServerAddr, store)
 
 	retry.Do(func() error {
 		err := consumer.Consume(ctx, feeder, slog.Default())
@@ -99,5 +100,5 @@ func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator
 			return err
 		}
 		return nil
-	}, retry.Attempts(0))
+	}, retry.Attempts(0)) // retry indefinitly until context canceled
 }
