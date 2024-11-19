@@ -71,7 +71,7 @@ func main() {
 
 	if enableJS == "true" {
 		slog.Info("enabling jetstream consume")
-		go consumeLoop(ctx, jsServerAddr, feeder, store)
+		go consumeLoop(ctx, jsServerAddr, store)
 	}
 
 	server := NewServer(443, feeder, feedHost, feedDidBase)
@@ -87,11 +87,14 @@ func main() {
 	time.Sleep(time.Second)
 }
 
-func consumeLoop(ctx context.Context, jsServerAddr string, feeder *FeedGenerator, store *store.Store) {
-	consumer := NewConsumer(jsServerAddr, store)
+func consumeLoop(ctx context.Context, jsServerAddr string, store *store.Store) {
+	handler := handler{
+		store: store,
+	}
+	consumer := NewConsumer(jsServerAddr, slog.Default(), &handler)
 
 	retry.Do(func() error {
-		err := consumer.Consume(ctx, feeder, slog.Default())
+		err := consumer.Consume(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				return nil
