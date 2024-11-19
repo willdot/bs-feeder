@@ -82,7 +82,7 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 	slog.Info("post is a reply to a post that users are subscribed to", "subscribed post URI", subscribedPostURI, "dids", subscribedDids, "RKey", event.Commit.RKey)
 
 	replyPostURI := fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey)
-	h.createFeedPostForSubscribedUsers(subscribedDids, subscribedPostURI, replyPostURI)
+	h.createFeedPostForSubscribedUsers(subscribedDids, replyPostURI, subscribedPostURI)
 	return nil
 }
 
