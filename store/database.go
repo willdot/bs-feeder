@@ -15,9 +15,11 @@ type Store struct {
 }
 
 func New(dbPath string) (*Store, error) {
-	err := createDbFile(dbPath)
-	if err != nil {
-		return nil, fmt.Errorf("create db file: %w", err)
+	if dbPath != ":memory:" {
+		err := createDbFile(dbPath)
+		if err != nil {
+			return nil, fmt.Errorf("create db file: %w", err)
+		}
 	}
 
 	db, err := sql.Open("sqlite", dbPath)

@@ -13,6 +13,10 @@ import (
 	"github.com/willdot/bskyfeedgen/store"
 )
 
+const (
+	myDid = "did:plc:dadhhalkfcq3gucaq25hjqon"
+)
+
 type HandlerStore interface {
 	AddFeedPost(feedItem store.FeedPost) error
 	GetSubscriptionsForPost(postURI string) ([]string, error)
@@ -62,7 +66,7 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 	// look for posts that are "subscribe" so that we can add the post URI to a list of posts we want to find replies for
 	if strings.Contains(post.Text, "/subscribe") {
 		// For now just look for me
-		if event.Did != "did:plc:dadhhalkfcq3gucaq25hjqon" {
+		if event.Did != myDid {
 			return nil
 		}
 		slog.Info("a post that's subscribing to another post. Adding to posts to look for", "subscribed post URI", subscribedPostURI)
