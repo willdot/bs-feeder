@@ -46,7 +46,7 @@ func (s *Store) AddFeedPost(feedPost FeedPost) error {
 }
 
 func (s *Store) GetUsersFeed(usersDID string) ([]FeedPost, error) {
-	sql := "SELECT id, replyURI, userDID FROM feed WHERE userDID = ?;"
+	sql := "SELECT id, replyURI, userDID, subscribedPostURI FROM feed WHERE userDID = ?;"
 	rows, err := s.db.Query(sql, usersDID)
 	if err != nil {
 		return nil, fmt.Errorf("run query to get users feed posts: %w", err)
@@ -56,7 +56,7 @@ func (s *Store) GetUsersFeed(usersDID string) ([]FeedPost, error) {
 	feedPosts := make([]FeedPost, 0)
 	for rows.Next() {
 		var feedPost FeedPost
-		if err := rows.Scan(&feedPost.ID, &feedPost.ReplyURI, &feedPost.UserDID); err != nil {
+		if err := rows.Scan(&feedPost.ID, &feedPost.ReplyURI, &feedPost.UserDID, &feedPost.SubscribedPostURI); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
 		feedPosts = append(feedPosts, feedPost)
