@@ -12,6 +12,7 @@ func createFeedTable(db *sql.DB) error {
 		"replyURI" TEXT,
 		"userDID" TEXT,
 		"subscribedPostURI" TEXT,
+		"createdAt" integer NOT NULL,
 		UNIQUE(replyURI, userDID)
 	  );`
 
@@ -34,11 +35,12 @@ type FeedPost struct {
 	ReplyURI          string
 	UserDID           string
 	SubscribedPostURI string
+	CreatedAt         int64
 }
 
 func (s *Store) AddFeedPost(feedPost FeedPost) error {
-	sql := `INSERT INTO feed (replyURI, userDID, subscribedPostURI) VALUES (?, ?, ?) ON CONFLICT(replyURI, userDID) DO NOTHING;`
-	_, err := s.db.Exec(sql, feedPost.ReplyURI, feedPost.UserDID, feedPost.SubscribedPostURI)
+	sql := `INSERT INTO feed (replyURI, userDID, subscribedPostURI, createdAt) VALUES (?, ?, ?, ?) ON CONFLICT(replyURI, userDID) DO NOTHING;`
+	_, err := s.db.Exec(sql, feedPost.ReplyURI, feedPost.UserDID, feedPost.SubscribedPostURI, feedPost.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("exec insert feed item: %w", err)
 	}
