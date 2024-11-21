@@ -51,6 +51,10 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 		return nil
 	}
 
+	if event.Did == myDid {
+		slog.Info("event from my did", "event", event.Commit.Record)
+	}
+
 	var post apibsky.FeedPost
 	if err := json.Unmarshal(event.Commit.Record, &post); err != nil {
 		// ignore this
