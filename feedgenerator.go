@@ -29,7 +29,7 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor strin
 	}
 
 	cursorInt, err := strconv.Atoi(cursor)
-	if err != nil {
+	if err != nil && cursor != "" {
 		slog.Error("convert cursor to int", "error", err, "cursor value", cursor)
 	}
 	if cursorInt == 0 {
