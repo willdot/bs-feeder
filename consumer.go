@@ -25,7 +25,9 @@ func NewConsumer(jsAddr string, logger *slog.Logger, handler *handler) *consumer
 	cfg.WantedCollections = []string{
 		"app.bsky.feed.post",
 	}
-	cfg.WantedDids = []string{}
+	cfg.WantedDids = []string{
+		myDid,
+	}
 
 	return &consumer{
 		cfg:     cfg,
