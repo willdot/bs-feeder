@@ -50,7 +50,7 @@ func (s *Store) AddFeedPost(feedPost FeedPost) error {
 func (s *Store) GetUsersFeed(usersDID string, cursor int64, limit int) ([]FeedPost, error) {
 	sql := `SELECT id, replyURI, userDID, subscribedPostURI, createdAt FROM feed
 			WHERE userDID = ? AND createdAt < ?
-			ORDER BY createdAt LIMIT ?;`
+			ORDER BY DESC createdAt LIMIT ?;`
 	rows, err := s.db.Query(sql, usersDID, cursor, limit)
 	if err != nil {
 		return nil, fmt.Errorf("run query to get users feed posts: %w", err)
