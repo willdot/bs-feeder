@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 
@@ -14,13 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/willdot/bskyfeedgen/store"
 )
-
-func TestIt(t *testing.T) {
-	ti := time.Now().Add(-time.Minute * 60)
-
-	fmt.Println(ti.UnixMicro())
-	t.FailNow()
-}
 
 func TestHandlerReceivesSubscribeMessage(t *testing.T) {
 	db, err := store.New(":memory:")

@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	jsServerAddr = "wss://jetstream.atproto.tools/subscribe"
+	defaultServerAddr = "wss://jetstream.atproto.tools/subscribe"
 )
 
 func main() {
@@ -71,7 +71,7 @@ func main() {
 
 	if enableJS == "true" {
 		slog.Info("enabling jetstream consume")
-		go consumeLoop(ctx, jsServerAddr, store)
+		go consumeLoop(ctx, store)
 	}
 
 	server := NewServer(443, feeder, feedHost, feedDidBase)
@@ -87,10 +87,16 @@ func main() {
 	time.Sleep(time.Second)
 }
 
-func consumeLoop(ctx context.Context, jsServerAddr string, store *store.Store) {
+func consumeLoop(ctx context.Context, store *store.Store) {
 	handler := handler{
 		store: store,
 	}
+
+	jsServerAddr := os.Getenv("JS_SERVER_ADDR")
+	if jsServerAddr == "" {
+		jsServerAddr = defaultServerAddr
+	}
+
 	consumer := NewConsumer(jsServerAddr, slog.Default(), &handler)
 
 	retry.Do(func() error {
