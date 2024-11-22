@@ -87,10 +87,16 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 	slog.Info("post is a reply to a post that users are subscribed to", "subscribed post URI", subscribedPostURI, "dids", subscribedDids, "RKey", event.Commit.RKey)
 
 	// TODO: parse from the event
-	createdAt := time.Now().UTC().UnixMilli()
+	createdAt, err := time.Parse(time.RFC1123, post.CreatedAt)
+	if err != nil {
+		slog.Error("parsing createdAt time from post", "error", err, "timestamp", post.CreatedAt)
+		createdAt = time.Now().UTC()
+	}
+
+	slog.Info("created at", "time stamp", createdAt, "original time stamp", post.CreatedAt)
 
 	replyPostURI := fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey)
-	h.createFeedPostForSubscribedUsers(subscribedDids, replyPostURI, subscribedPostURI, createdAt)
+	h.createFeedPostForSubscribedUsers(subscribedDids, replyPostURI, subscribedPostURI, createdAt.UnixMilli())
 	return nil
 }
 
