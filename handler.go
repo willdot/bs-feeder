@@ -86,7 +86,6 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 
 	slog.Info("post is a reply to a post that users are subscribed to", "subscribed post URI", subscribedPostURI, "dids", subscribedDids, "RKey", event.Commit.RKey)
 
-	// TODO: parse from the event
 	createdAt, err := time.Parse(time.RFC1123, post.CreatedAt)
 	if err != nil {
 		slog.Error("parsing createdAt time from post", "error", err, "timestamp", post.CreatedAt)
