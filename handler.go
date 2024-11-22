@@ -51,10 +51,6 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 		return nil
 	}
 
-	if event.Did == myDid {
-		slog.Info("event from my did", "event", event.Commit.Record)
-	}
-
 	var post apibsky.FeedPost
 	if err := json.Unmarshal(event.Commit.Record, &post); err != nil {
 		// ignore this
@@ -91,8 +87,6 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 		slog.Error("parsing createdAt time from post", "error", err, "timestamp", post.CreatedAt)
 		createdAt = time.Now().UTC()
 	}
-
-	slog.Info("created at", "time stamp", createdAt, "original time stamp", post.CreatedAt)
 
 	replyPostURI := fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey)
 	h.createFeedPostForSubscribedUsers(subscribedDids, replyPostURI, subscribedPostURI, createdAt.UnixMilli())
