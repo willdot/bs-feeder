@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	apibsky "github.com/bluesky-social/indigo/api/bsky"
 	"github.com/bluesky-social/jetstream/pkg/models"
@@ -81,8 +82,14 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 
 	slog.Info("post is a reply to a post that users are subscribed to", "subscribed post URI", subscribedPostURI, "dids", subscribedDids, "RKey", event.Commit.RKey)
 
+	createdAt, err := time.Parse(time.RFC3339, post.CreatedAt)
+	if err != nil {
+		slog.Error("parsing createdAt time from post", "error", err, "timestamp", post.CreatedAt)
+		createdAt = time.Now().UTC()
+	}
+
 	replyPostURI := fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey)
-	h.createFeedPostForSubscribedUsers(subscribedDids, replyPostURI, subscribedPostURI)
+	h.createFeedPostForSubscribedUsers(subscribedDids, replyPostURI, subscribedPostURI, createdAt.UnixMilli())
 	return nil
 }
 
@@ -138,12 +145,13 @@ func (h *handler) getSubscribedDidsForPost(postURI string) []string {
 	return dids
 }
 
-func (h *handler) createFeedPostForSubscribedUsers(usersDids []string, replyPostURI, subscribedPostURI string) {
+func (h *handler) createFeedPostForSubscribedUsers(usersDids []string, replyPostURI, subscribedPostURI string, createdAt int64) {
 	for _, did := range usersDids {
 		feedItem := store.FeedPost{
 			ReplyURI:          replyPostURI,
 			UserDID:           did,
 			SubscribedPostURI: subscribedPostURI,
+			CreatedAt:         createdAt,
 		}
 		err := h.store.AddFeedPost(feedItem)
 		if err != nil {

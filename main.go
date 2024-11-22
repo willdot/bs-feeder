@@ -104,4 +104,6 @@ func consumeLoop(ctx context.Context, jsServerAddr string, store *store.Store) {
 		}
 		return nil
 	}, retry.Attempts(0)) // retry indefinitly until context canceled
+
+	slog.Warn("exiting consume loop")
 }

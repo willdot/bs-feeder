@@ -12,6 +12,7 @@ func createFeedTable(db *sql.DB) error {
 		"replyURI" TEXT,
 		"userDID" TEXT,
 		"subscribedPostURI" TEXT,
+		"createdAt" integer NOT NULL,
 		UNIQUE(replyURI, userDID)
 	  );`
 
@@ -34,20 +35,23 @@ type FeedPost struct {
 	ReplyURI          string
 	UserDID           string
 	SubscribedPostURI string
+	CreatedAt         int64
 }
 
 func (s *Store) AddFeedPost(feedPost FeedPost) error {
-	sql := `INSERT INTO feed (replyURI, userDID, subscribedPostURI) VALUES (?, ?, ?) ON CONFLICT(replyURI, userDID) DO NOTHING;`
-	_, err := s.db.Exec(sql, feedPost.ReplyURI, feedPost.UserDID, feedPost.SubscribedPostURI)
+	sql := `INSERT INTO feed (replyURI, userDID, subscribedPostURI, createdAt) VALUES (?, ?, ?, ?) ON CONFLICT(replyURI, userDID) DO NOTHING;`
+	_, err := s.db.Exec(sql, feedPost.ReplyURI, feedPost.UserDID, feedPost.SubscribedPostURI, feedPost.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("exec insert feed item: %w", err)
 	}
 	return nil
 }
 
-func (s *Store) GetUsersFeed(usersDID string) ([]FeedPost, error) {
-	sql := "SELECT id, replyURI, userDID, subscribedPostURI FROM feed WHERE userDID = ?;"
-	rows, err := s.db.Query(sql, usersDID)
+func (s *Store) GetUsersFeed(usersDID string, cursor int64, limit int) ([]FeedPost, error) {
+	sql := `SELECT id, replyURI, userDID, subscribedPostURI, createdAt FROM feed
+			WHERE userDID = ? AND createdAt < ?
+			ORDER BY createdAt DESC LIMIT ?;`
+	rows, err := s.db.Query(sql, usersDID, cursor, limit)
 	if err != nil {
 		return nil, fmt.Errorf("run query to get users feed posts: %w", err)
 	}
@@ -56,7 +60,7 @@ func (s *Store) GetUsersFeed(usersDID string) ([]FeedPost, error) {
 	feedPosts := make([]FeedPost, 0)
 	for rows.Next() {
 		var feedPost FeedPost
-		if err := rows.Scan(&feedPost.ID, &feedPost.ReplyURI, &feedPost.UserDID, &feedPost.SubscribedPostURI); err != nil {
+		if err := rows.Scan(&feedPost.ID, &feedPost.ReplyURI, &feedPost.UserDID, &feedPost.SubscribedPostURI, &feedPost.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
 		feedPosts = append(feedPosts, feedPost)
