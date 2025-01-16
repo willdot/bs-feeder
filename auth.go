@@ -2,13 +2,17 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bluesky-social/indigo/atproto/crypto"
 	"github.com/bluesky-social/indigo/atproto/identity"
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/willdot/bskyfeedgen/frontend"
 )
 
 // The contents of this file have been borrowed from here: https://github.com/orthanc/bluesky-go-feeds/blob/f719f113f1afc9080e50b4b1f5ca239aa3073c79/web/auth.go#L20-L46
@@ -28,7 +32,8 @@ func (m *AtProtoSigningMethod) Alg() string {
 }
 
 func (m *AtProtoSigningMethod) Verify(signingString string, signature []byte, key interface{}) error {
-	return key.(crypto.PublicKey).HashAndVerifyLenient([]byte(signingString), signature)
+	err := key.(crypto.PublicKey).HashAndVerifyLenient([]byte(signingString), signature)
+	return err
 }
 
 func (m *AtProtoSigningMethod) Sign(signingString string, key interface{}) ([]byte, error) {
@@ -45,6 +50,7 @@ func init() {
 	jwt.RegisterSigningMethod(ES256.Alg(), func() jwt.SigningMethod {
 		return &ES256
 	})
+
 }
 
 var directory = identity.DefaultDirectory()
@@ -56,8 +62,6 @@ func getRequestUserDID(r *http.Request) (string, error) {
 		return "", fmt.Errorf("missing authorization header")
 	}
 	token := strings.TrimSpace(strings.Replace(headerValues[0], "Bearer ", "", 1))
-
-	validMethods := jwt.WithValidMethods([]string{ES256, ES256K})
 
 	keyfunc := func(token *jwt.Token) (interface{}, error) {
 		did := syntax.DID(token.Claims.(jwt.MapClaims)["iss"].(string))
@@ -71,6 +75,8 @@ func getRequestUserDID(r *http.Request) (string, error) {
 		}
 		return key, nil
 	}
+
+	validMethods := jwt.WithValidMethods([]string{ES256, ES256K})
 
 	parsedToken, err := jwt.ParseWithClaims(token, jwt.MapClaims{}, keyfunc, validMethods)
 	if err != nil {
@@ -88,4 +94,60 @@ func getRequestUserDID(r *http.Request) (string, error) {
 	}
 
 	return string(syntax.DID(issVal)), nil
+}
+
+const (
+	jwtCookieName = "JWT"
+	didCookieName = "DID"
+)
+
+func (s *Server) authMiddleware(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		jwtCookie, err := r.Cookie(jwtCookieName)
+		if err != nil {
+			slog.Error("read JWT cookie", "error", err)
+			frontend.Login("", "").Render(r.Context(), w)
+			return
+		}
+		if jwtCookie == nil {
+			slog.Error("missing JWT cookie")
+			frontend.Login("", "").Render(r.Context(), w)
+			return
+		}
+
+		didCookie, err := r.Cookie(didCookieName)
+		if err != nil {
+			slog.Error("read DID cookie", "error", err)
+			frontend.Login("", "").Render(r.Context(), w)
+			return
+		}
+		if didCookie == nil {
+			slog.Error("missing DID cookie")
+			frontend.Login("", "").Render(r.Context(), w)
+			return
+		}
+
+		claims := jwt.MapClaims{}
+		_, _, err = jwt.NewParser().ParseUnverified(jwtCookie.Value, &claims)
+		if err != nil {
+			slog.Error("parsing JWT", "error", err)
+			frontend.Login("", "").Render(r.Context(), w)
+			return
+		}
+
+		if expiry, ok := claims["exp"].(string); ok {
+			expiryInt, err := strconv.Atoi(expiry)
+			if err != nil {
+				slog.Error("invalid claims from token", "error", err)
+				frontend.Login("", "").Render(r.Context(), w)
+				return
+			}
+
+			if time.Now().Unix() > int64(expiryInt) {
+				frontend.Login("", "").Render(r.Context(), w)
+				return
+			}
+		}
+		next(w, r)
+	}
 }

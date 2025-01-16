@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/bugsnag/bugsnag-go/v2"
+	"github.com/joho/godotenv"
 	"github.com/willdot/bskyfeedgen/store"
 )
 
@@ -21,6 +23,11 @@ const (
 
 func main() {
 	configureLogger()
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)

@@ -11,6 +11,7 @@ import (
 
 type feedStore interface {
 	GetUsersFeed(usersDID string, cursor int64, limit int) ([]store.FeedPost, error)
+	GetSubscriptionsForUser(ctx context.Context, userDID string) ([]store.Subscription, error)
 }
 
 type FeedGenerator struct {
@@ -58,4 +59,8 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor strin
 		resp.Cursor = fmt.Sprintf("%d", lastFeedItem.CreatedAt)
 	}
 	return resp, nil
+}
+
+func (f *FeedGenerator) GetSubscriptionsForUser(ctx context.Context, userDID string) ([]store.Subscription, error) {
+	return f.store.GetSubscriptionsForUser(ctx, userDID)
 }

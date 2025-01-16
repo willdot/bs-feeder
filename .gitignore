@@ -1,2 +1,9 @@
 # the built binary
 bskyfeedgen
+
+.env
+/tmp/
+
+.DS_Store
+
+*_templ.go
