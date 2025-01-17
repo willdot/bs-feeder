@@ -1,6 +1,11 @@
 package frontend
 
-templ Subscriptions(errorMsg string, subscriptions []string) {
+import (
+	"fmt"
+	"github.com/willdot/bskyfeedgen/store"
+)
+
+templ Subscriptions(errorMsg string, subscriptions []store.Subscription) {
 	@Base()
 	if errorMsg != "" {
 		<div role="alert">
@@ -9,5 +14,25 @@ templ Subscriptions(errorMsg string, subscriptions []string) {
 			</div>
 		</div>
 	}
-	<p>Subscriptions</p>
+	<section class="border-t border-t-zinc-200 mt-6 px-2 py-4 w-96">
+		<p>Subscriptions</p>
+		// LOOP THROUGH THE TODOS
+		<ul id="todo-list">
+			for _, sub := range subscriptions {
+				<li class="ml-4 ml-4 border p-2 rounded-lg mb-2" id={ fmt.Sprintf("sub%d", sub.ID) }>
+					<a class="font-medium text-sm" href={ templ.URL(sub.SubscribedPostURI) }>{ sub.SubscribedPostURI }</a>
+					<div class="flex gap-4 items-center mt-2">
+						<button
+							hx-delete={ fmt.Sprintf("/sub/%d", sub.ID) }
+							hx-swap="delete"
+							hx-target={ fmt.Sprintf("#sub%d", sub.ID) }
+							class="flex items-center border py-1 px-2 rounded-lg hover:bg-red-300"
+						>
+							<p class="text-sm">Delete</p>
+						</button>
+					</div>
+				</li>
+			}
+		</ul>
+	</section>
 }

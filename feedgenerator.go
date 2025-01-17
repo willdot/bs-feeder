@@ -12,6 +12,7 @@ import (
 type feedStore interface {
 	GetUsersFeed(usersDID string, cursor int64, limit int) ([]store.FeedPost, error)
 	GetSubscriptionsForUser(ctx context.Context, userDID string) ([]store.Subscription, error)
+	DeleteSubscriptionByIdAndUser(userDID string, id int) error
 }
 
 type FeedGenerator struct {
@@ -63,4 +64,8 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor strin
 
 func (f *FeedGenerator) GetSubscriptionsForUser(ctx context.Context, userDID string) ([]store.Subscription, error) {
 	return f.store.GetSubscriptionsForUser(ctx, userDID)
+}
+
+func (f *FeedGenerator) DeleteSubscriptionByIdAndUser(userDID string, id int) error {
+	return f.store.DeleteSubscriptionByIdAndUser(userDID, id)
 }
