@@ -26,7 +26,9 @@ func main() {
 
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		if !os.IsNotExist(err) {
+			log.Fatal("Error loading .env file")
+		}
 	}
 
 	signals := make(chan os.Signal, 1)
