@@ -15,6 +15,7 @@ type Feeder interface {
 	GetSubscriptionsForUser(ctx context.Context, userDID string) ([]store.Subscription, error)
 	DeleteSubscriptionBySubRKeyAndUser(userDID, rkey string) error
 	DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID string) error
+	GetSubscriptionURIByRKeyAndUserDID(userDID, rkey string) (string, error)
 }
 
 type Server struct {

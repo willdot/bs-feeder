@@ -14,6 +14,7 @@ type feedStore interface {
 	GetSubscriptionsForUser(ctx context.Context, userDID string) ([]store.Subscription, error)
 	DeleteSubscriptionBySubRKeyAndUser(userDID, rkey string) error
 	DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID string) error
+	GetSubscriptionURIByRKeyAndUserDID(userDID, rkey string) (string, error)
 }
 
 type FeedGenerator struct {
@@ -73,4 +74,8 @@ func (f *FeedGenerator) DeleteSubscriptionBySubRKeyAndUser(userDID, rkey string)
 
 func (f *FeedGenerator) DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID string) error {
 	return f.store.DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID)
+}
+
+func (f *FeedGenerator) GetSubscriptionURIByRKeyAndUserDID(userDID, rkey string) (string, error) {
+	return f.GetSubscriptionURIByRKeyAndUserDID(userDID, rkey)
 }

@@ -96,14 +96,14 @@ func (s *Server) HandleDeleteSubscription(w http.ResponseWriter, r *http.Request
 
 	usersDid := didCookie.Value
 
-	// id, err := strconv.Atoi(sub)
-	// if err != nil {
-	// 	slog.Error("failed to convert sub ID to int", "error", err)
-	// 	http.Error(w, "invalid ID", http.StatusBadRequest)
-	// 	return
-	// }
+	subURI, err := s.feeder.GetSubscriptionURIByRKeyAndUserDID(usersDid, subRKey)
+	if err != nil {
+		slog.Error("get sub URI by rkey and user did", "error", err, "subscription URI", subRKey)
+		http.Error(w, "failed to delete feed posts for subscription and user", http.StatusInternalServerError)
+		return
+	}
 
-	err = s.feeder.DeleteFeedPostsForSubscribedPostURIandUserDID(subRKey, usersDid)
+	err = s.feeder.DeleteFeedPostsForSubscribedPostURIandUserDID(subURI, usersDid)
 	if err != nil {
 		slog.Error("delete feed posts for subscription and user", "error", err, "subscription URI", subRKey)
 		http.Error(w, "failed to delete feed posts for subscription and user", http.StatusInternalServerError)
