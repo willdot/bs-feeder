@@ -5,5 +5,3 @@ bskyfeedgen
 /tmp/
 
 .DS_Store
-
-*_templ.go
