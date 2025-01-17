@@ -11,6 +11,10 @@ import (
 
 type feedStore interface {
 	GetUsersFeed(usersDID string, cursor int64, limit int) ([]store.FeedPost, error)
+	GetSubscriptionsForUser(ctx context.Context, userDID string) ([]store.Subscription, error)
+	DeleteSubscriptionBySubRKeyAndUser(userDID, rkey string) error
+	DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID string) error
+	GetSubscriptionURIByRKeyAndUserDID(userDID, rkey string) (string, error)
 }
 
 type FeedGenerator struct {
@@ -58,4 +62,20 @@ func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor strin
 		resp.Cursor = fmt.Sprintf("%d", lastFeedItem.CreatedAt)
 	}
 	return resp, nil
+}
+
+func (f *FeedGenerator) GetSubscriptionsForUser(ctx context.Context, userDID string) ([]store.Subscription, error) {
+	return f.store.GetSubscriptionsForUser(ctx, userDID)
+}
+
+func (f *FeedGenerator) DeleteSubscriptionBySubRKeyAndUser(userDID, rkey string) error {
+	return f.store.DeleteSubscriptionBySubRKeyAndUser(userDID, rkey)
+}
+
+func (f *FeedGenerator) DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID string) error {
+	return f.store.DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID)
+}
+
+func (f *FeedGenerator) GetSubscriptionURIByRKeyAndUserDID(userDID, rkey string) (string, error) {
+	return f.store.GetSubscriptionURIByRKeyAndUserDID(userDID, rkey)
 }

@@ -1,0 +1,10 @@
+<div role=\"alert\"><div class=\"border border-t-0 border-red-400 rounded-b bg-red-100 px-4 py-3 text-red-700\"><p>
+</p></div></div>
+<div class=\"overflow-x-auto\"><table class=\"min-w-half divide-y-2 divide-gray-200 bg-white text-sm\"><tbody class=\"divide-y divide-gray-200\">
+<tr id=\"
+\"><td class=\"whitespace-nowrap px-4 py-2 font-medium text-gray-900\"><a class=\"font-medium text-sm\" href=\"
+\">
+</a></td><td class=\"whitespace-nowrap px-4 py-2 text-gray-700\"><button hx-delete=\"
+\" hx-swap=\"delete\" hx-target=\"
+\" class=\"flex items-center border py-1 px-2 rounded-lg hover:bg-red-300\"><p class=\"text-sm\">Delete</p></button></td></tr>
+</tbody></table></div>

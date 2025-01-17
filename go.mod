@@ -1,14 +1,18 @@
 module github.com/willdot/bskyfeedgen
 
-go 1.22.0
+go 1.23.3
+
+toolchain go1.23.4
 
 require (
+	github.com/a-h/templ v0.2.793
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/bluesky-social/indigo v0.0.0-20241031232035-1a73c3fb6841
 	github.com/bluesky-social/jetstream v0.0.0-20241031234625-0ab10bd041fe
 	github.com/bugsnag/bugsnag-go/v2 v2.5.1
 	github.com/glebarez/go-sqlite v1.22.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.9.0
 )
 
@@ -73,10 +77,10 @@ require (
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
-	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
+	golang.org/x/crypto v0.26.0 // indirect
+	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/sys v0.23.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect

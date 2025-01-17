@@ -1,2 +1,7 @@
 # the built binary
 bskyfeedgen
+
+.env
+/tmp/
+
+.DS_Store
