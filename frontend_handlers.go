@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/willdot/bskyfeedgen/frontend"
@@ -70,8 +69,6 @@ func (s *Server) HandleSubscriptions(w http.ResponseWriter, r *http.Request) {
 			handle = did
 		}
 
-		slog.Info("sub id", "id", sub.ID)
-
 		uri := fmt.Sprintf("https://bsky.app/profile/%s/post/%s", handle, splitStr[4])
 		sub.SubscribedPostURI = uri
 		subResp = append(subResp, sub)
@@ -81,9 +78,9 @@ func (s *Server) HandleSubscriptions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleDeleteSubscription(w http.ResponseWriter, r *http.Request) {
-	sub := r.PathValue("id")
+	subRKey := r.PathValue("id")
 
-	slog.Info("deleting sub", "sub", sub)
+	slog.Info("deleting sub", "sub", subRKey)
 
 	didCookie, err := r.Cookie(didCookieName)
 	if err != nil {
@@ -99,16 +96,23 @@ func (s *Server) HandleDeleteSubscription(w http.ResponseWriter, r *http.Request
 
 	usersDid := didCookie.Value
 
-	id, err := strconv.Atoi(sub)
+	// id, err := strconv.Atoi(sub)
+	// if err != nil {
+	// 	slog.Error("failed to convert sub ID to int", "error", err)
+	// 	http.Error(w, "invalid ID", http.StatusBadRequest)
+	// 	return
+	// }
+
+	err = s.feeder.DeleteFeedPostsForSubscribedPostURIandUserDID(subRKey, usersDid)
 	if err != nil {
-		slog.Error("failed to convert sub ID to int", "error", err)
-		http.Error(w, "invalid ID", http.StatusBadRequest)
+		slog.Error("delete feed posts for subscription and user", "error", err, "subscription URI", subRKey)
+		http.Error(w, "failed to delete feed posts for subscription and user", http.StatusInternalServerError)
 		return
 	}
 
-	err = s.feeder.DeleteSubscriptionByIdAndUser(usersDid, id)
+	err = s.feeder.DeleteSubscriptionBySubRKeyAndUser(usersDid, subRKey)
 	if err != nil {
-		slog.Error("delete subscription for user", "error", err, "subscription URI", sub)
+		slog.Error("delete subscription for user", "error", err, "subscription RKey", subRKey)
 		http.Error(w, "failed to delete subscription", http.StatusInternalServerError)
 		return
 	}

@@ -97,7 +97,7 @@ func (s *Store) DeleteSubscriptionForUser(userDID, postURI string) error {
 }
 
 func (s *Store) GetSubscriptionsForUser(ctx context.Context, userDID string) ([]Subscription, error) {
-	sql := "SELECT id,  subscribedPostURI FROM subscriptions WHERE userDID = ?;"
+	sql := "SELECT id, subscribedPostURI, subscriptionPostRkey FROM subscriptions WHERE userDID = ?;"
 	rows, err := s.db.Query(sql, userDID)
 	if err != nil {
 		return nil, fmt.Errorf("run query to get subscribed posts for user: %w", err)
@@ -107,7 +107,7 @@ func (s *Store) GetSubscriptionsForUser(ctx context.Context, userDID string) ([]
 	var results []Subscription
 	for rows.Next() {
 		var subscription Subscription
-		if err := rows.Scan(&subscription.ID, &subscription.SubscribedPostURI); err != nil {
+		if err := rows.Scan(&subscription.ID, &subscription.SubscribedPostURI, &subscription.SubscriptionPostRkey); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
 
@@ -116,11 +116,11 @@ func (s *Store) GetSubscriptionsForUser(ctx context.Context, userDID string) ([]
 	return results, nil
 }
 
-func (s *Store) DeleteSubscriptionByIdAndUser(userDID string, id int) error {
-	sql := "DELETE FROM subscriptions WHERE id = ?;"
-	_, err := s.db.Exec(sql, id)
+func (s *Store) DeleteSubscriptionBySubRKeyAndUser(userDID, rkey string) error {
+	sql := "DELETE FROM subscriptions WHERE subscriptionPostRkey = ?;"
+	_, err := s.db.Exec(sql, rkey)
 	if err != nil {
-		return fmt.Errorf("exec delete subscription by id: %w", err)
+		return fmt.Errorf("exec delete subscription by rkey: %w", err)
 	}
 	return nil
 }

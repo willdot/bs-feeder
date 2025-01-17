@@ -13,7 +13,8 @@ import (
 type Feeder interface {
 	GetFeed(ctx context.Context, userDID, feed, cursor string, limit int) (FeedReponse, error)
 	GetSubscriptionsForUser(ctx context.Context, userDID string) ([]store.Subscription, error)
-	DeleteSubscriptionByIdAndUser(userDID string, id int) error
+	DeleteSubscriptionBySubRKeyAndUser(userDID, rkey string) error
+	DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID string) error
 }
 
 type Server struct {
