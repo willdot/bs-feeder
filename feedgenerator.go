@@ -77,5 +77,5 @@ func (f *FeedGenerator) DeleteFeedPostsForSubscribedPostURIandUserDID(subscribed
 }
 
 func (f *FeedGenerator) GetSubscriptionURIByRKeyAndUserDID(userDID, rkey string) (string, error) {
-	return f.GetSubscriptionURIByRKeyAndUserDID(userDID, rkey)
+	return f.store.GetSubscriptionURIByRKeyAndUserDID(userDID, rkey)
 }

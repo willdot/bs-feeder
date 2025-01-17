@@ -127,19 +127,19 @@ func (s *Store) DeleteSubscriptionBySubRKeyAndUser(userDID, rkey string) error {
 
 func (s *Store) GetSubscriptionURIByRKeyAndUserDID(userDID, rkey string) (string, error) {
 	sql := "SELECT subscribedPostURI FROM subscriptions WHERE subscriptionPostRkey = ? AND userDID = ?;"
-	rows, err := s.db.Query(sql, userDID)
+	rows, err := s.db.Query(sql, rkey, userDID)
 	if err != nil {
 		return "", fmt.Errorf("run query to get subscribed by rkey and userDID: %w", err)
 	}
 	defer rows.Close()
 
-	var result string
 	for rows.Next() {
-		if err := rows.Scan(&result); err != nil {
+		var subscription Subscription
+		if err := rows.Scan(&subscription.SubscribedPostURI); err != nil {
 			return "", fmt.Errorf("scan row: %w", err)
 		}
 
-		return result, nil
+		return subscription.SubscribedPostURI, nil
 	}
 	return "", nil
 }
