@@ -7,7 +7,6 @@ toolchain go1.23.4
 require (
 	github.com/a-h/templ v0.2.793
 	github.com/avast/retry-go/v4 v4.6.0
-	github.com/axzilla/templui v0.25.0
 	github.com/bluesky-social/indigo v0.0.0-20241031232035-1a73c3fb6841
 	github.com/bluesky-social/jetstream v0.0.0-20241031234625-0ab10bd041fe
 	github.com/bugsnag/bugsnag-go/v2 v2.5.1
@@ -18,7 +17,6 @@ require (
 )
 
 require (
-	github.com/Oudwins/tailwind-merge-go v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bugsnag/panicwrap v1.3.4 // indirect
 	github.com/carlmjohnson/versioninfo v0.22.5 // indirect
