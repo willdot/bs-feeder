@@ -20,9 +20,10 @@ type Feeder interface {
 }
 
 type BookmarkStore interface {
-	CreateBookmark(postRKey, postURI, authorDID, authorHandle, userDID, content string) error
+	CreateBookmark(postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content string) error
 	GetBookmarksForUser(userDID string) ([]store.Bookmark, error)
 	DeleteBookmark(postRKey, userDID string) error
+	GetBookmarkByRKeyForUser(rkey, userDID string) (*store.Bookmark, error)
 }
 
 type Server struct {
@@ -88,4 +89,16 @@ var cssFile []byte
 func serveCSS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
 	w.Write(cssFile)
+}
+
+func getUsersDidFromRequest(r *http.Request) (string, error) {
+	didCookie, err := r.Cookie(didCookieName)
+	if err != nil {
+		return "", err
+	}
+	if didCookie == nil {
+		return "", fmt.Errorf("missing did cookie")
+	}
+
+	return didCookie.Value, nil
 }

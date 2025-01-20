@@ -15,14 +15,14 @@ templ Bookmarks(errorMsg string, bookmarks []store.Bookmark) {
 		</div>
 	}
 	<div hx-ext="response-targets" class="h-screen flex justify-center items-center">
-		<div class="overflow-x-auto">
-			<form hx-post="/bookmarks" hx-trigger="submit" hx-target="#result" hx-swap="innerHTML" hx-target-error="#result" class="w-96" hx-on::after-request="this.reset()">
-				<textarea name="uri" cols="30" rows="1" class="w-full border rounded-lg mb-2 p-4" placeholder="Add Post URI here" required></textarea>
-				<div id="result" class="text-red-500 font-bold"></div>
-				<button class="py-1 px-4 w-full h-10 rounded-lg text-white bg-zinc-800">
-					Add Bookmark
-				</button>
-			</form>
+		<form hx-post="/bookmarks" hx-trigger="submit" hx-target="#result" hx-swap="innerHTML" hx-target-error="#result" class="w-96" hx-on::after-request="this.reset()">
+			<input name="uri" class="rounded-lg w-full mb-2 p-4" placeholder="Add Post URI here"/>
+			<div id="result" class="text-red-500 font-bold"></div>
+			<button class="py-1 px-4 w-full h-10 rounded-lg text-white bg-zinc-800">
+				Add Bookmark
+			</button>
+		</form>
+		<div class="px-4">
 			<table class="min-w-half divide-y-2 divide-gray-200 bg-white text-sm">
 				<tbody class="divide-y divide-gray-200" id="bookmarks-table">
 					for _, bookmark := range bookmarks {
@@ -39,6 +39,7 @@ templ bookmarkRow(bookmark store.Bookmark) {
 		<td class="px-4 py-2 font-medium text-gray-900">
 			<p class="font-medium text-sm text-blue-300">Author: { bookmark.AuthorHandle } </p>
 			<a class="font-medium text-sm" href={ templ.URL(bookmark.PostURI) }>{ bookmark.Content }</a>
+			<p>{ bookmark.PostURI } </p>
 		</td>
 		<td class="whitespace-nowrap px-4 py-2 text-gray-700">
 			<button

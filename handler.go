@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	apibsky "github.com/bluesky-social/indigo/api/bsky"
@@ -21,6 +20,7 @@ const (
 type HandlerStore interface {
 	AddFeedPost(feedItem store.FeedPost) error
 	GetSubscriptionsForPost(postURI string) ([]string, error)
+	GetBookmarksForPost(postURI string) ([]string, error)
 	AddSubscriptionForPost(subscribedPostURI, userDid, subscriptionPostRkey string) error
 	GetSubscribedPostURI(userDID, subscriptionPostRkey string) (string, error)
 	DeleteSubscriptionForUser(userDID, postURI string) error
@@ -63,16 +63,6 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 	}
 
 	subscribedPostURI := post.Reply.Parent.Uri
-
-	// look for posts that are "subscribe" so that we can add the post URI to a list of posts we want to find replies for
-	if strings.Contains(post.Text, "/subscribe") {
-		// For now just look for me
-		if event.Did != myDid {
-			return nil
-		}
-		slog.Info("a post that's subscribing to another post. Adding to posts to look for", "subscribed post URI", subscribedPostURI)
-		return h.addDidToSubscribedPost(subscribedPostURI, event.Did, event.Commit.RKey)
-	}
 
 	// see if the post is a reply to a post we are subscribed to
 	subscribedDids := h.getSubscribedDidsForPost(subscribedPostURI)
@@ -136,9 +126,10 @@ func (h *handler) addDidToSubscribedPost(subscribedPostURI, userDid, subscriptio
 }
 
 func (h *handler) getSubscribedDidsForPost(postURI string) []string {
-	dids, err := h.store.GetSubscriptionsForPost(postURI)
+	// dids, err := h.store.GetSubscriptionsForPost(postURI)
+	dids, err := h.store.GetBookmarksForPost(postURI)
 	if err != nil {
-		slog.Error("getting subscriptions for post", "error", err)
+		slog.Error("getting bookmarks for post", "error", err)
 		bugsnag.Notify(err)
 	}
 

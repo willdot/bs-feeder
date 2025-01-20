@@ -11,6 +11,7 @@ func createBookmarksTable(db *sql.DB) error {
 		"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
 		"postRKey" TEXT,
 		"postURI" TEXT,
+		"postATURI" TEXT,
 		"authorDID" TEXT,
 		"authorHandle" TEXT,
 		"userDID" TEXT,
@@ -36,15 +37,16 @@ type Bookmark struct {
 	ID           int
 	PostRKey     string
 	PostURI      string
+	PostATURI    string
 	AuthorDID    string
 	AuthorHandle string
 	UserDID      string
 	Content      string
 }
 
-func (s *Store) CreateBookmark(postRKey, postURI, authorDID, authorHandle, userDID, content string) error {
-	sql := `INSERT INTO bookmarks (postRKey, postURI, authorDID, authorHandle, userDID, content) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(postRKey, userDID) DO NOTHING;`
-	_, err := s.db.Exec(sql, postRKey, postURI, authorDID, authorHandle, userDID, content)
+func (s *Store) CreateBookmark(postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content string) error {
+	sql := `INSERT INTO bookmarks (postRKey, postURI,postATURI, authorDID, authorHandle, userDID, content) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(postRKey, userDID) DO NOTHING;`
+	_, err := s.db.Exec(sql, postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content)
 	if err != nil {
 		return fmt.Errorf("exec insert bookmark: %w", err)
 	}
@@ -52,7 +54,7 @@ func (s *Store) CreateBookmark(postRKey, postURI, authorDID, authorHandle, userD
 }
 
 func (s *Store) GetBookmarksForUser(userDID string) ([]Bookmark, error) {
-	sql := "SELECT id, postRKey, postURI, authorDID, authorHandle,  userDID, content FROM bookmarks WHERE userDID = ?;"
+	sql := "SELECT id, postRKey, postURI, postATURI, authorDID, authorHandle,  userDID, content FROM bookmarks WHERE userDID = ?;"
 	rows, err := s.db.Query(sql, userDID)
 	if err != nil {
 		return nil, fmt.Errorf("run query to get bookmarked posts for user: %w", err)
@@ -62,7 +64,7 @@ func (s *Store) GetBookmarksForUser(userDID string) ([]Bookmark, error) {
 	var results []Bookmark
 	for rows.Next() {
 		var bookmark Bookmark
-		if err := rows.Scan(&bookmark.ID, &bookmark.PostRKey, &bookmark.PostURI, &bookmark.AuthorDID, &bookmark.AuthorHandle, &bookmark.UserDID, &bookmark.Content); err != nil {
+		if err := rows.Scan(&bookmark.ID, &bookmark.PostRKey, &bookmark.PostURI, &bookmark.PostATURI, &bookmark.AuthorDID, &bookmark.AuthorHandle, &bookmark.UserDID, &bookmark.Content); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
 
@@ -78,4 +80,44 @@ func (s *Store) DeleteBookmark(postRKey, userDID string) error {
 		return fmt.Errorf("exec delete bookmark by postRKey and userDID: %w", err)
 	}
 	return nil
+}
+
+func (s *Store) GetBookmarksForPost(postURI string) ([]string, error) {
+	sql := "SELECT userDID FROM bookmarks WHERE postATURI = ?"
+	rows, err := s.db.Query(sql, postURI)
+	if err != nil {
+		return nil, fmt.Errorf("run query to get bookmarks for post: %w", err)
+	}
+	defer rows.Close()
+
+	dids := make([]string, 0)
+	for rows.Next() {
+		var bookmark Bookmark
+		if err := rows.Scan(&bookmark.UserDID); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+		dids = append(dids, bookmark.UserDID)
+	}
+
+	return dids, nil
+}
+
+func (s *Store) GetBookmarkByRKeyForUser(rkey, userDID string) (*Bookmark, error) {
+	sql := "SELECT id, postRKey, postURI, postATURI, authorDID, authorHandle,  userDID, content FROM bookmarks WHERE postRKey = ? AND userDID = ?;"
+	rows, err := s.db.Query(sql, rkey, userDID)
+	if err != nil {
+		return nil, fmt.Errorf("run query to get bookmark by rkey and user: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var bookmark Bookmark
+		if err := rows.Scan(&bookmark.ID, &bookmark.PostRKey, &bookmark.PostURI, &bookmark.PostATURI, &bookmark.AuthorDID, &bookmark.AuthorHandle, &bookmark.UserDID, &bookmark.Content); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+
+		return &bookmark, nil
+	}
+
+	return nil, nil
 }

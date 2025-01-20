@@ -16,40 +16,31 @@ import (
 )
 
 func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
-	didCookie, err := r.Cookie(didCookieName)
+	usersDid, err := getUsersDidFromRequest(r)
 	if err != nil {
-		slog.Error("read DID cookie", "error", err)
+		slog.Error("getting users did from request", "error", err)
 		frontend.Login("", "").Render(r.Context(), w)
 		return
 	}
-	if didCookie == nil {
-		slog.Error("missing DID cookie")
-		frontend.Login("", "").Render(r.Context(), w)
-		return
-	}
-
-	usersDid := didCookie.Value
 
 	postURI := r.FormValue("uri")
+	postURI = strings.TrimSuffix(postURI, "/")
 
-	a := strings.TrimPrefix(postURI, "https://bsky.app/profile/")
-	b := strings.Split(a, "/")
-
-	did, err := resolveHandle(b[0])
+	atPostURI, err := convertPostURIToAtValidURI(postURI)
 	if err != nil {
-		slog.Error("error revolving handle", "error", err)
-		http.Error(w, "resolving handle", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	postURI = strings.ReplaceAll(postURI, b[0], did)
-	postURI = strings.ReplaceAll(postURI, "https://bsky.app/profile/", "")
 
-	sanitizedPostURI := fmt.Sprintf("at://%s", strings.ReplaceAll(postURI, "post", "app.bsky.feed.post"))
+	if atPostURI == "at://" {
+		http.Error(w, "invalid post URI - contains invalid user handle", http.StatusBadRequest)
+		return
+	}
 
-	uriSplit := strings.Split(sanitizedPostURI, "/")
+	uriSplit := strings.Split(atPostURI, "/")
 	rkey := uriSplit[len(uriSplit)-1]
 
-	postResp, err := bsky.FeedGetPosts(r.Context(), s.xrpcClient, []string{sanitizedPostURI})
+	postResp, err := bsky.FeedGetPosts(r.Context(), s.xrpcClient, []string{atPostURI})
 	if err != nil {
 		slog.Error("error getting post details from Bsky", "error", err)
 		http.Error(w, "error fetching post details from Bluesky", http.StatusInternalServerError)
@@ -62,10 +53,7 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	post := postResp.Posts[0]
-
-	slog.Info("record", "val", post)
-
-	postB, err := post.Record.MarshalJSON()
+	postBytes, err := post.Record.MarshalJSON()
 	if err != nil {
 		slog.Error("marshal post record", "error", err)
 		http.Error(w, "decode the post from Bluesky", http.StatusInternalServerError)
@@ -73,7 +61,7 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var postRecord apibsky.FeedPost
-	if err := json.Unmarshal(postB, &postRecord); err != nil {
+	if err := json.Unmarshal(postBytes, &postRecord); err != nil {
 		slog.Error("unmarshal post record", "error", err)
 		http.Error(w, "decode the post from Bluesky", http.StatusInternalServerError)
 		return
@@ -84,7 +72,7 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 		content = fmt.Sprintf("%s...", content[:75])
 	}
 
-	err = s.bookmarkStore.CreateBookmark(rkey, postURI, post.Author.Did, post.Author.Handle, usersDid, content)
+	err = s.bookmarkStore.CreateBookmark(rkey, postURI, atPostURI, post.Author.Did, post.Author.Handle, usersDid, content)
 	if err != nil {
 		slog.Error("create bookmark", "error", err)
 		http.Error(w, "failed to create bookmark", http.StatusInternalServerError)
@@ -94,6 +82,7 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 	bookmark := store.Bookmark{
 		PostRKey:     rkey,
 		PostURI:      postURI,
+		PostATURI:    atPostURI,
 		AuthorDID:    post.Author.Did,
 		AuthorHandle: post.Author.Handle,
 		UserDID:      usersDid,
@@ -103,22 +92,45 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 	frontend.NewBookmarkRow(bookmark).Render(r.Context(), w)
 }
 
+func convertPostURIToAtValidURI(input string) (string, error) {
+	input = strings.TrimPrefix(input, "https://bsky.app/profile/")
+	b := strings.Split(input, "/")
+
+	did, err := resolveHandle(b[0])
+	if err != nil {
+		slog.Error("error resolving handle", "error", err)
+		return "", fmt.Errorf("error resolving handle")
+	}
+
+	input = strings.ReplaceAll(input, b[0], did)
+	input = strings.ReplaceAll(input, "https://bsky.app/profile/", "")
+
+	return fmt.Sprintf("at://%s", strings.ReplaceAll(input, "post", "app.bsky.feed.post")), nil
+}
+
 func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 	rKey := r.PathValue("rkey")
 
-	didCookie, err := r.Cookie(didCookieName)
+	usersDid, err := getUsersDidFromRequest(r)
 	if err != nil {
-		slog.Error("read DID cookie", "error", err)
-		frontend.Login("", "").Render(r.Context(), w)
-		return
-	}
-	if didCookie == nil {
-		slog.Error("missing DID cookie")
+		slog.Error("getting users did from request", "error", err)
 		frontend.Login("", "").Render(r.Context(), w)
 		return
 	}
 
-	usersDid := didCookie.Value
+	bookmark, err := s.bookmarkStore.GetBookmarkByRKeyForUser(rKey, usersDid)
+	if err != nil {
+		slog.Error("getting bookmark by rkey and users did", "error", err)
+		http.Error(w, "getting bookmark to delete", http.StatusInternalServerError)
+		return
+	}
+
+	err = s.feeder.DeleteFeedPostsForSubscribedPostURIandUserDID(bookmark.PostATURI, usersDid)
+	if err != nil {
+		slog.Error("deleting feed items for bookmark", "error", err)
+		http.Error(w, "deleting feed items for bookmark", http.StatusInternalServerError)
+		return
+	}
 
 	err = s.bookmarkStore.DeleteBookmark(rKey, usersDid)
 	if err != nil {
@@ -135,19 +147,12 @@ func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleGetBookmarks(w http.ResponseWriter, r *http.Request) {
-	didCookie, err := r.Cookie(didCookieName)
+	usersDid, err := getUsersDidFromRequest(r)
 	if err != nil {
-		slog.Error("read DID cookie", "error", err)
+		slog.Error("getting users did from request", "error", err)
 		frontend.Login("", "").Render(r.Context(), w)
 		return
 	}
-	if didCookie == nil {
-		slog.Error("missing DID cookie")
-		frontend.Login("", "").Render(r.Context(), w)
-		return
-	}
-
-	usersDid := didCookie.Value
 
 	bookmarks, err := s.bookmarkStore.GetBookmarksForUser(usersDid)
 	if err != nil {
@@ -158,23 +163,7 @@ func (s *Server) HandleGetBookmarks(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]store.Bookmark, 0, len(bookmarks))
 	for _, bookmark := range bookmarks {
-		// splitStr := strings.Split(sub.SubscribedPostURI, "/")
-
-		// if len(splitStr) != 5 {
-		// 	slog.Error("subscription URI was not expected - expected to have 5 strings after spliting by /", "uri", sub.SubscribedPostURI)
-		// 	continue
-		// }
-
-		// did := splitStr[2]
-
-		// handle, err := resolveDid(did)
-		// if err != nil {
-		// 	slog.Error("resolving did", "error", err, "did", did)
-		// 	handle = did
-		// }
-
-		// uri := fmt.Sprintf("https://bsky.app/profile/%s/post/%s", handle, splitStr[4])
-		// sub.SubscribedPostURI = uri
+		slog.Info("got uri", "uri", bookmark.PostURI)
 		resp = append(resp, bookmark)
 	}
 
