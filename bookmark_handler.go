@@ -140,8 +140,6 @@ func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: delete feed items too
-
 	w.WriteHeader(http.StatusAccepted)
 	w.Write([]byte("{}"))
 }
