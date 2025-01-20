@@ -11,10 +11,11 @@ templ Base() {
 			<link href="/public/styles.css" rel="stylesheet"/>
 			<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 			<script src="https://unpkg.com/htmx.org"></script>
-			<script src="https://unpkg.com/htmx.org@1.9.9" defer></script>
+			<script src="https://unpkg.com/htmx.org@1.9.11" defer></script>
 			<script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/json-enc.js"></script>
+			<script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/response-targets.js"></script>
 		</head>
-		<body class="antialiased">
+		<body hx-ext="response-targets" class="antialiased">
 			@Nav()
 			{ children... }
 		</body>

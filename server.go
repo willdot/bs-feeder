@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/willdot/bskyfeedgen/store"
 )
 
@@ -18,18 +19,27 @@ type Feeder interface {
 	GetSubscriptionURIByRKeyAndUserDID(userDID, rkey string) (string, error)
 }
 
-type Server struct {
-	httpsrv     *http.Server
-	feeder      Feeder
-	feedHost    string
-	feedDidBase string
+type BookmarkStore interface {
+	CreateBookmark(postRKey, postURI, authorDID, authorHandle, userDID, content string) error
+	GetBookmarksForUser(userDID string) ([]store.Bookmark, error)
+	DeleteBookmark(postRKey, userDID string) error
 }
 
-func NewServer(port int, feeder Feeder, feedHost, feedDidBase string) *Server {
+type Server struct {
+	httpsrv       *http.Server
+	feeder        Feeder
+	feedHost      string
+	feedDidBase   string
+	bookmarkStore BookmarkStore
+	xrpcClient    *xrpc.Client
+}
+
+func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkStore BookmarkStore) *Server {
 	srv := &Server{
-		feeder:      feeder,
-		feedHost:    feedHost,
-		feedDidBase: feedDidBase,
+		feeder:        feeder,
+		feedHost:      feedHost,
+		feedDidBase:   feedDidBase,
+		bookmarkStore: bookmarkStore,
 	}
 
 	mux := http.NewServeMux()
@@ -42,17 +52,23 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string) *Server {
 	mux.HandleFunc("/login", srv.HandleLogin)
 	mux.HandleFunc("GET /subscriptions", srv.HandleSubscriptions)
 	mux.HandleFunc("DELETE /sub/{id}", srv.HandleDeleteSubscription)
+	mux.HandleFunc("GET /bookmarks", srv.HandleGetBookmarks)
+	mux.HandleFunc("POST /bookmarks", srv.HandleAddBookmark)
+	mux.HandleFunc("DELETE /bookmarks/{rkey}", srv.HandleDeleteBookmark)
 
 	addr := fmt.Sprintf("0.0.0.0:%d", port)
 
-	httpSrv := http.Server{
+	srv.httpsrv = &http.Server{
 		Addr:    addr,
 		Handler: mux,
 	}
 
-	return &Server{
-		httpsrv: &httpSrv,
+	srv.xrpcClient = &xrpc.Client{
+		// Client: http.DefaultClient,
+		Host: "https://public.api.bsky.app",
 	}
+
+	return srv
 }
 
 func (s *Server) Run() {
