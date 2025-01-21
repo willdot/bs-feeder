@@ -2,20 +2,23 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/willdot/bskyfeedgen/frontend"
-	"github.com/willdot/bskyfeedgen/store"
 )
 
 const (
-	bskyBaseURL = "https://bsky.social/xrpc"
+	bskyBaseURL   = "https://bsky.social/xrpc"
+	jwtCookieName = "JWT"
+	didCookieName = "DID"
 )
 
 type loginRequest struct {
@@ -26,99 +29,6 @@ type loginRequest struct {
 type BskyAuth struct {
 	AccessJwt string `json:"accessJwt"`
 	Did       string `json:"did"`
-}
-
-func (s *Server) HandleSubscriptions(w http.ResponseWriter, r *http.Request) {
-	didCookie, err := r.Cookie(didCookieName)
-	if err != nil {
-		slog.Error("read DID cookie", "error", err)
-		frontend.Login("", "").Render(r.Context(), w)
-		return
-	}
-	if didCookie == nil {
-		slog.Error("missing DID cookie")
-		frontend.Login("", "").Render(r.Context(), w)
-		return
-	}
-
-	usersDid := didCookie.Value
-
-	slog.Info("did request", "did", usersDid)
-
-	subs, err := s.feeder.GetSubscriptionsForUser(r.Context(), usersDid)
-	if err != nil {
-		slog.Error("error getting subscriptions for user", "error", err)
-		frontend.Subscriptions("failed to get subscriptions", nil).Render(r.Context(), w)
-		return
-	}
-
-	subResp := make([]store.Subscription, 0, len(subs))
-	for _, sub := range subs {
-		splitStr := strings.Split(sub.SubscribedPostURI, "/")
-
-		if len(splitStr) != 5 {
-			slog.Error("subscription URI was not expected - expected to have 5 strings after spliting by /", "uri", sub.SubscribedPostURI)
-			continue
-		}
-
-		did := splitStr[2]
-
-		handle, err := resolveDid(did)
-		if err != nil {
-			slog.Error("resolving did", "error", err, "did", did)
-			handle = did
-		}
-
-		uri := fmt.Sprintf("https://bsky.app/profile/%s/post/%s", handle, splitStr[4])
-		sub.SubscribedPostURI = uri
-		subResp = append(subResp, sub)
-	}
-
-	frontend.Subscriptions("", subResp).Render(r.Context(), w)
-}
-
-func (s *Server) HandleDeleteSubscription(w http.ResponseWriter, r *http.Request) {
-	subRKey := r.PathValue("id")
-
-	slog.Info("deleting sub", "sub", subRKey)
-
-	didCookie, err := r.Cookie(didCookieName)
-	if err != nil {
-		slog.Error("read DID cookie", "error", err)
-		frontend.Login("", "").Render(r.Context(), w)
-		return
-	}
-	if didCookie == nil {
-		slog.Error("missing DID cookie")
-		frontend.Login("", "").Render(r.Context(), w)
-		return
-	}
-
-	usersDid := didCookie.Value
-
-	subURI, err := s.feeder.GetSubscriptionURIByRKeyAndUserDID(usersDid, subRKey)
-	if err != nil {
-		slog.Error("get sub URI by rkey and user did", "error", err, "subscription URI", subRKey)
-		http.Error(w, "failed to delete feed posts for subscription and user", http.StatusInternalServerError)
-		return
-	}
-
-	err = s.feeder.DeleteFeedPostsForSubscribedPostURIandUserDID(subURI, usersDid)
-	if err != nil {
-		slog.Error("delete feed posts for subscription and user", "error", err, "subscription URI", subRKey)
-		http.Error(w, "failed to delete feed posts for subscription and user", http.StatusInternalServerError)
-		return
-	}
-
-	err = s.feeder.DeleteSubscriptionBySubRKeyAndUser(usersDid, subRKey)
-	if err != nil {
-		slog.Error("delete subscription for user", "error", err, "subscription RKey", subRKey)
-		http.Error(w, "failed to delete subscription", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusAccepted)
-	w.Write([]byte("{}"))
 }
 
 func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
@@ -204,10 +114,72 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		Value: loginResp.Did,
 	})
 
-	ctx := context.WithValue(r.Context(), frontend.ContextUsernameKey, loginReq.Handle)
-	r = r.WithContext(ctx)
-
 	http.Redirect(w, r, "/", http.StatusOK)
+}
+
+func (s *Server) HandleSignOut(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:  jwtCookieName,
+		Value: "",
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:  didCookieName,
+		Value: "",
+	})
+
+	frontend.Login("", "").Render(r.Context(), w)
+}
+
+func (s *Server) authMiddleware(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		jwtCookie, err := r.Cookie(jwtCookieName)
+		if err != nil {
+			slog.Error("read JWT cookie", "error", err)
+			frontend.Login("", "").Render(r.Context(), w)
+			return
+		}
+		if jwtCookie == nil {
+			slog.Error("missing JWT cookie")
+			frontend.Login("", "").Render(r.Context(), w)
+			return
+		}
+
+		didCookie, err := r.Cookie(didCookieName)
+		if err != nil {
+			slog.Error("read DID cookie", "error", err)
+			frontend.Login("", "").Render(r.Context(), w)
+			return
+		}
+		if didCookie == nil {
+			slog.Error("missing DID cookie")
+			frontend.Login("", "").Render(r.Context(), w)
+			return
+		}
+
+		claims := jwt.MapClaims{}
+		_, _, err = jwt.NewParser().ParseUnverified(jwtCookie.Value, &claims)
+		if err != nil {
+			slog.Error("parsing JWT", "error", err)
+			frontend.Login("", "").Render(r.Context(), w)
+			return
+		}
+
+		if expiry, ok := claims["exp"].(string); ok {
+			expiryInt, err := strconv.Atoi(expiry)
+			if err != nil {
+				slog.Error("invalid claims from token", "error", err)
+				frontend.Login("", "").Render(r.Context(), w)
+				return
+			}
+
+			if time.Now().Unix() > int64(expiryInt) {
+				frontend.Login("", "").Render(r.Context(), w)
+				return
+			}
+		}
+		next(w, r)
+	}
 }
 
 func resolveDid(did string) (string, error) {

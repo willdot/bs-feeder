@@ -83,7 +83,7 @@ func main() {
 		go consumeLoop(ctx, store)
 	}
 
-	server := NewServer(443, feeder, feedHost, feedDidBase)
+	server := NewServer(443, feeder, feedHost, feedDidBase, store)
 	go func() {
 		<-signals
 		cancel()

@@ -69,7 +69,7 @@ func (s *Store) GetUsersFeed(usersDID string, cursor int64, limit int) ([]FeedPo
 	return feedPosts, nil
 }
 
-func (s *Store) DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID string) error {
+func (s *Store) DeleteFeedPostsForBookmarkedPostURIandUserDID(subscribedPostURI, userDID string) error {
 	sql := "DELETE FROM feed WHERE subscribedPostURI = ? AND userDID = ?;"
 	statement, err := s.db.Prepare(sql)
 	if err != nil {
