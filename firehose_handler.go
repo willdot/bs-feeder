@@ -13,10 +13,6 @@ import (
 	"github.com/willdot/bskyfeedgen/store"
 )
 
-const (
-	myDid = "did:plc:dadhhalkfcq3gucaq25hjqon"
-)
-
 type HandlerStore interface {
 	AddFeedPost(feedItem store.FeedPost) error
 	GetBookmarksForPost(postURI string) ([]string, error)
@@ -81,7 +77,7 @@ func (h *handler) getSubscribedDidsForPost(postURI string) []string {
 	dids, err := h.store.GetBookmarksForPost(postURI)
 	if err != nil {
 		slog.Error("getting bookmarks for post", "error", err)
-		bugsnag.Notify(err)
+		_ = bugsnag.Notify(err)
 	}
 
 	return dids
@@ -98,7 +94,7 @@ func (h *handler) createFeedPostForSubscribedUsers(usersDids []string, replyPost
 		err := h.store.AddFeedPost(feedItem)
 		if err != nil {
 			slog.Error("add users feed item", "error", err, "did", did, "reply post URI", replyPostURI)
-			bugsnag.Notify(err)
+			_ = bugsnag.Notify(err)
 			continue
 		}
 	}

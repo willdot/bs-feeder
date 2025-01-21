@@ -25,7 +25,7 @@ func NewFeedGenerator(store feedStore) *FeedGenerator {
 
 func (f *FeedGenerator) GetFeed(ctx context.Context, userDID, feed, cursor string, limit int) (FeedReponse, error) {
 	resp := FeedReponse{
-		Feed: make([]FeedItem, 0, 0),
+		Feed: make([]FeedItem, 0),
 	}
 
 	cursorInt, err := strconv.Atoi(cursor)

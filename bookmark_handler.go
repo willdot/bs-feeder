@@ -20,7 +20,7 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 	usersDid, err := getUsersDidFromRequestCookie(r)
 	if err != nil {
 		slog.Error("getting users did from request", "error", err)
-		frontend.Login("", "").Render(r.Context(), w)
+		_ = frontend.Login("", "").Render(r.Context(), w)
 		return
 	}
 
@@ -93,7 +93,7 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 		Content:      content,
 	}
 
-	frontend.NewBookmarkRow(bookmark).Render(r.Context(), w)
+	_ = frontend.NewBookmarkRow(bookmark).Render(r.Context(), w)
 }
 
 func convertPostURIToAtValidURI(input string) (string, error) {
@@ -118,7 +118,7 @@ func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 	usersDid, err := getUsersDidFromRequestCookie(r)
 	if err != nil {
 		slog.Error("getting users did from request", "error", err)
-		frontend.Login("", "").Render(r.Context(), w)
+		_ = frontend.Login("", "").Render(r.Context(), w)
 		return
 	}
 
@@ -145,30 +145,28 @@ func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusAccepted)
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (s *Server) HandleGetBookmarks(w http.ResponseWriter, r *http.Request) {
 	usersDid, err := getUsersDidFromRequestCookie(r)
 	if err != nil {
 		slog.Error("getting users did from request", "error", err)
-		frontend.Login("", "").Render(r.Context(), w)
+		_ = frontend.Login("", "").Render(r.Context(), w)
 		return
 	}
 
 	bookmarks, err := s.bookmarkStore.GetBookmarksForUser(usersDid)
 	if err != nil {
 		slog.Error("error getting bookmarks for user", "error", err)
-		frontend.Bookmarks(nil).Render(r.Context(), w)
+		_ = frontend.Bookmarks(nil).Render(r.Context(), w)
 		return
 	}
 
 	resp := make([]store.Bookmark, 0, len(bookmarks))
-	for _, bookmark := range bookmarks {
-		resp = append(resp, bookmark)
-	}
+	resp = append(resp, bookmarks...)
 
-	frontend.Bookmarks(resp).Render(r.Context(), w)
+	_ = frontend.Bookmarks(resp).Render(r.Context(), w)
 }
 
 func resolveHandle(handle string) (string, error) {

@@ -84,7 +84,7 @@ var cssFile []byte
 
 func serveCSS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
-	w.Write(cssFile)
+	_, _ = w.Write(cssFile)
 }
 
 func getUsersDidFromRequestCookie(r *http.Request) (string, error) {

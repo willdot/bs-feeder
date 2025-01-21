@@ -86,7 +86,7 @@ func (s *Server) HandleGetFeedSkeleton(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	w.Write(b)
+	_, _ = w.Write(b)
 }
 
 type DescribeFeedResponse struct {
@@ -115,7 +115,7 @@ func (s *Server) HandleDescribeFeedGenerator(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	w.Write(b)
+	_, _ = w.Write(b)
 }
 
 func (s *Server) HandleWellKnown(w http.ResponseWriter, r *http.Request) {
@@ -138,5 +138,5 @@ func (s *Server) HandleWellKnown(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(b)
+	_, _ = w.Write(b)
 }
