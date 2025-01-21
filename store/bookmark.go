@@ -117,7 +117,7 @@ func (s *Store) GetBookmarkByRKeyForUser(rkey, userDID string) (*Bookmark, error
 	}
 	defer rows.Close()
 
-	for rows.Next() {
+	if rows.Next() {
 		var bookmark Bookmark
 		if err := rows.Scan(&bookmark.ID, &bookmark.PostRKey, &bookmark.PostURI, &bookmark.PostATURI, &bookmark.AuthorDID, &bookmark.AuthorHandle, &bookmark.UserDID, &bookmark.Content); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)

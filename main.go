@@ -68,7 +68,7 @@ func main() {
 	store, err := store.New(dbFilename)
 	if err != nil {
 		slog.Error("create new store", "error", err)
-		bugsnag.Notify(err)
+		_ = bugsnag.Notify(err)
 		return
 	}
 	defer store.Close()
@@ -108,7 +108,7 @@ func consumeLoop(ctx context.Context, store *store.Store) {
 
 	consumer := NewConsumer(jsServerAddr, slog.Default(), &handler)
 
-	retry.Do(func() error {
+	_ = retry.Do(func() error {
 		err := consumer.Consume(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
