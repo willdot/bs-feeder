@@ -37,11 +37,6 @@ func New(dbPath string) (*Store, error) {
 		return nil, fmt.Errorf("creating feed table: %w", err)
 	}
 
-	err = createSubscriptionsTable(db)
-	if err != nil {
-		return nil, fmt.Errorf("creating subscription table: %w", err)
-	}
-
 	err = createBookmarksTable(db)
 	if err != nil {
 		return nil, fmt.Errorf("creating bookmarks table: %w", err)

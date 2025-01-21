@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,7 +17,7 @@ import (
 )
 
 func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
-	usersDid, err := getUsersDidFromRequest(r)
+	usersDid, err := getUsersDidFromRequestCookie(r)
 	if err != nil {
 		slog.Error("getting users did from request", "error", err)
 		frontend.Login("", "").Render(r.Context(), w)
@@ -74,6 +75,9 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 
 	err = s.bookmarkStore.CreateBookmark(rkey, postURI, atPostURI, post.Author.Did, post.Author.Handle, usersDid, content)
 	if err != nil {
+		if errors.Is(err, store.ErrBookmarkAlreadyExists) {
+			return
+		}
 		slog.Error("create bookmark", "error", err)
 		http.Error(w, "failed to create bookmark", http.StatusInternalServerError)
 		return
@@ -111,7 +115,7 @@ func convertPostURIToAtValidURI(input string) (string, error) {
 func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 	rKey := r.PathValue("rkey")
 
-	usersDid, err := getUsersDidFromRequest(r)
+	usersDid, err := getUsersDidFromRequestCookie(r)
 	if err != nil {
 		slog.Error("getting users did from request", "error", err)
 		frontend.Login("", "").Render(r.Context(), w)
@@ -125,7 +129,7 @@ func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.feeder.DeleteFeedPostsForSubscribedPostURIandUserDID(bookmark.PostATURI, usersDid)
+	err = s.bookmarkStore.DeleteFeedPostsForBookmarkedPostURIandUserDID(bookmark.PostATURI, usersDid)
 	if err != nil {
 		slog.Error("deleting feed items for bookmark", "error", err)
 		http.Error(w, "deleting feed items for bookmark", http.StatusInternalServerError)
@@ -145,7 +149,7 @@ func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleGetBookmarks(w http.ResponseWriter, r *http.Request) {
-	usersDid, err := getUsersDidFromRequest(r)
+	usersDid, err := getUsersDidFromRequestCookie(r)
 	if err != nil {
 		slog.Error("getting users did from request", "error", err)
 		frontend.Login("", "").Render(r.Context(), w)
@@ -155,17 +159,16 @@ func (s *Server) HandleGetBookmarks(w http.ResponseWriter, r *http.Request) {
 	bookmarks, err := s.bookmarkStore.GetBookmarksForUser(usersDid)
 	if err != nil {
 		slog.Error("error getting bookmarks for user", "error", err)
-		frontend.Subscriptions("failed to get bookmarks", nil).Render(r.Context(), w)
+		frontend.Bookmarks(nil).Render(r.Context(), w)
 		return
 	}
 
 	resp := make([]store.Bookmark, 0, len(bookmarks))
 	for _, bookmark := range bookmarks {
-		slog.Info("got uri", "uri", bookmark.PostURI)
 		resp = append(resp, bookmark)
 	}
 
-	frontend.Bookmarks("", resp).Render(r.Context(), w)
+	frontend.Bookmarks(resp).Render(r.Context(), w)
 }
 
 func resolveHandle(handle string) (string, error) {

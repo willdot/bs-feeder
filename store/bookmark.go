@@ -2,9 +2,12 @@ package store
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 )
+
+var ErrBookmarkAlreadyExists = errors.New("bookmark already exists")
 
 func createBookmarksTable(db *sql.DB) error {
 	createBooksmarksTableSQL := `CREATE TABLE IF NOT EXISTS bookmarks (
@@ -46,9 +49,13 @@ type Bookmark struct {
 
 func (s *Store) CreateBookmark(postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content string) error {
 	sql := `INSERT INTO bookmarks (postRKey, postURI,postATURI, authorDID, authorHandle, userDID, content) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(postRKey, userDID) DO NOTHING;`
-	_, err := s.db.Exec(sql, postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content)
+	res, err := s.db.Exec(sql, postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content)
 	if err != nil {
 		return fmt.Errorf("exec insert bookmark: %w", err)
+	}
+
+	if x, _ := res.RowsAffected(); x == 0 {
+		return ErrBookmarkAlreadyExists
 	}
 	return nil
 }

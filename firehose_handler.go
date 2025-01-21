@@ -19,12 +19,7 @@ const (
 
 type HandlerStore interface {
 	AddFeedPost(feedItem store.FeedPost) error
-	GetSubscriptionsForPost(postURI string) ([]string, error)
 	GetBookmarksForPost(postURI string) ([]string, error)
-	AddSubscriptionForPost(subscribedPostURI, userDid, subscriptionPostRkey string) error
-	GetSubscribedPostURI(userDID, subscriptionPostRkey string) (string, error)
-	DeleteSubscriptionForUser(userDID, postURI string) error
-	DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, userDID string) error
 }
 
 type handler struct {
@@ -39,8 +34,6 @@ func (h *handler) HandleEvent(ctx context.Context, event *models.Event) error {
 	switch event.Commit.Operation {
 	case models.CommitOperationCreate:
 		return h.handleCreateEvent(ctx, event)
-	case models.CommitOperationDelete:
-		return h.handleDeleteEvent(ctx, event)
 	default:
 		return nil
 	}
@@ -80,48 +73,6 @@ func (h *handler) handleCreateEvent(_ context.Context, event *models.Event) erro
 
 	replyPostURI := fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.Did, event.Commit.RKey)
 	h.createFeedPostForSubscribedUsers(subscribedDids, replyPostURI, subscribedPostURI, createdAt.UnixMilli())
-	return nil
-}
-
-func (h *handler) handleDeleteEvent(_ context.Context, event *models.Event) error {
-	if event.Commit.Collection != "app.bsky.feed.post" {
-		return nil
-	}
-
-	// temp ignore everyone but me
-	if event.Did != "did:plc:dadhhalkfcq3gucaq25hjqon" {
-		return nil
-	}
-	slog.Info("delete event received", "did", event.Did, "rkey", event.Commit.RKey)
-	subscribedPostURI, err := h.store.GetSubscribedPostURI(event.Did, event.Commit.RKey)
-	if err != nil {
-		slog.Error("get subscribed post URI", "error", err, "rkey", event.Commit.RKey, "user DID", event.Did)
-		return fmt.Errorf("get subscribed post URI: %w", err)
-	}
-
-	//  delete from feeds for the subscribedPostURI and the users DID first. This is so that if this fails, it can be tried again and the
-	// subscription will be still there
-	err = h.store.DeleteFeedPostsForSubscribedPostURIandUserDID(subscribedPostURI, event.Did)
-	if err != nil {
-		slog.Error("delete feed items for subscribedPostURI and user", "error", err, "subscribedPostURI", subscribedPostURI, "user DID", event.Did)
-		return fmt.Errorf("delete feed items for subscribedPostURI and user: %w", err)
-	}
-
-	// delete from subscriptions for the postURI and the users DID now that we have cleaned up the feeds
-	err = h.store.DeleteSubscriptionForUser(event.Did, subscribedPostURI)
-	if err != nil {
-		slog.Error("delete subscription for user", "error", err, "subscribedPostURI", subscribedPostURI, "user DID", event.Did)
-		return fmt.Errorf("delete subscription and user: %w", err)
-	}
-
-	return nil
-}
-
-func (h *handler) addDidToSubscribedPost(subscribedPostURI, userDid, subscriptionPostRkey string) error {
-	err := h.store.AddSubscriptionForPost(subscribedPostURI, userDid, subscriptionPostRkey)
-	if err != nil {
-		return fmt.Errorf("add subscription for post: %w", err)
-	}
 	return nil
 }
 

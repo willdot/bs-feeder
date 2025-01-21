@@ -2,10 +2,6 @@ package frontend
 
 type contextKey string
 
-const (
-	ContextUsernameKey contextKey = "context_username"
-)
-
 templ Nav() {
 	<header class="header sticky top-0 bg-white shadow-md flex items-center justify-between px-8 py-02">
 		<nav class="nav font-semibold text-lg">
@@ -14,20 +10,13 @@ templ Nav() {
 					<a href="/">Home</a>
 				</li>
 				<li class="p-4 text-blue-500 hover:text-blue-800">
-					<a href="/subscription">Subcriptions</a>
-				</li>
-				<li class="p-4 text-blue-500 hover:text-blue-800">
 					<a href="/bookmarks">Bookmarks</a>
 				</li>
 			</ul>
 		</nav>
 		<div class="w-3/12 flex justify-end">
 			<div class="p-4 text-blue-500 hover:text-blue-800">
-				if username, ok := ctx.Value(ContextUsernameKey).(string); ok {
-					<a class="text-right" href="/account">{ username } </a>
-				} else {
-					<a class="text-right" href="/account">Account </a>
-				}
+				<a class="text-right" href="/sign-out">Sign Out </a>
 			</div>
 		</div>
 	</header>
