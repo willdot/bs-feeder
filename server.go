@@ -43,7 +43,7 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 	mux := http.NewServeMux()
 	mux.HandleFunc("/public/styles.css", serveCSS)
 	mux.HandleFunc("/public/index.js", serveJS)
-	mux.HandleFunc("/public/client-metadata.json", serveClientMetadata)
+	mux.HandleFunc("/client-metadata.json", serveClientMetadata)
 	mux.HandleFunc("/xrpc/app.bsky.feed.getFeedSkeleton", srv.HandleGetFeedSkeleton)
 	mux.HandleFunc("/xrpc/app.bsky.feed.describeFeedGenerator", srv.HandleDescribeFeedGenerator)
 	mux.HandleFunc("/.well-known/did.json", srv.HandleWellKnown)
