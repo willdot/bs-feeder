@@ -105,7 +105,8 @@ func serveJS(w http.ResponseWriter, r *http.Request) {
 var clientMetadata []byte
 
 func serveClientMetadata(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(clientMetadata)
 }
 

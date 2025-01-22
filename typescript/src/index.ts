@@ -46,7 +46,7 @@ function setupButton() {
       const authUrl = await createAuthorizationUrl({
         metadata: metadata,
         identity: identity,
-        scope: "atproto transition:generic transition:chat.bsky",
+        scope: "atproto transition:generic",
       });
 
       console.log("hello");
