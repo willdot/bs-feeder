@@ -1,5 +1,5 @@
 {
-  "client_id": "https://bs-feeder-staging.up.railway.app/client-metadata.json",
+  "client_id": "https://bs-feeder-staging.up.railway.app/public/client-metadata.json",
   "client_name": "Bsky-bookmarker",
   "client_uri": "https://bs-feeder-staging.up.railway.app",
   "logo_uri": "https://bs-feeder-staging.up.railway.app/logo.png",
