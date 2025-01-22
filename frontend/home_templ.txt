@@ -1,7 +1,0 @@
-<div class=\"relative flex justify-center overflow-hidden bg-gray-50 py-6 sm:py-12\"><div class=\"flex-1 mx-auto w-full max-w-md bg-white px-6 pt-6 pb-6 shadow-xl ring-1 ring-gray-900/5 sm:rounded-xl sm:px-8\"><div class=\"w-full\"><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your username is</h1><p class=\"mt-2 text-gray-500\">
-</p></div><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your email is</h1><p class=\"mt-2 text-gray-500\">
-</p></div></div></div><div class=\"flex-1 mx-auto w-full max-w-md bg-white px-6 pt-6 pb-6 shadow-xl ring-1 ring-gray-900/5 sm:rounded-xl sm:px-8\"><div class=\"w-full\"><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your username is</h1><p class=\"mt-2 text-gray-500\">
-</p></div><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your email is</h1><p class=\"mt-2 text-gray-500\">
-</p></div></div></div><div class=\"flex-1 mx-auto w-full max-w-md bg-white px-6 pt-6 pb-6 shadow-xl ring-1 ring-gray-900/5 sm:rounded-xl sm:px-8\"><div class=\"w-full\"><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your username is</h1><p class=\"mt-2 text-gray-500\">
-</p></div><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your email is</h1><p class=\"mt-2 text-gray-500\">
-</p></div></div></div></div>

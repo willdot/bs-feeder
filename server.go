@@ -42,6 +42,8 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/public/styles.css", serveCSS)
+	mux.HandleFunc("/public/index.js", serveJS)
+	mux.HandleFunc("/public/client-metadata.json", serveClientMetadata)
 	mux.HandleFunc("/xrpc/app.bsky.feed.getFeedSkeleton", srv.HandleGetFeedSkeleton)
 	mux.HandleFunc("/xrpc/app.bsky.feed.describeFeedGenerator", srv.HandleDescribeFeedGenerator)
 	mux.HandleFunc("/.well-known/did.json", srv.HandleWellKnown)
@@ -52,6 +54,10 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 	mux.HandleFunc("GET /bookmarks", srv.authMiddleware(srv.HandleGetBookmarks))
 	mux.HandleFunc("POST /bookmarks", srv.authMiddleware(srv.HandleAddBookmark))
 	mux.HandleFunc("DELETE /bookmarks/{rkey}", srv.authMiddleware(srv.HandleDeleteBookmark))
+
+	mux.HandleFunc("/oauth/callback", func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("hello from callback")
+	})
 
 	addr := fmt.Sprintf("0.0.0.0:%d", port)
 
@@ -85,6 +91,22 @@ var cssFile []byte
 func serveCSS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
 	_, _ = w.Write(cssFile)
+}
+
+//go:embed public/index.js
+var jsFile []byte
+
+func serveJS(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+	_, _ = w.Write(jsFile)
+}
+
+//go:embed public/client-metadata.json
+var clientMetadata []byte
+
+func serveClientMetadata(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_, _ = w.Write(clientMetadata)
 }
 
 func getUsersDidFromRequestCookie(r *http.Request) (string, error) {

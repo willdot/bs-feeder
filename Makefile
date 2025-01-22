@@ -1,3 +1,5 @@
+javascript:
+	npm run build --prefix ./typescript
 css:
 	tailwindcss -i app.css -o public/styles.css --watch
 
@@ -6,7 +8,7 @@ templ:
 air:
 	air
 dev:
-	make -j3 templ css air
+	make -j3 javascript templ css air
 
 docker:
 	@docker build -f Dockerfile -t willdot/templ-demo .

@@ -7,9 +7,10 @@ import (
 
 templ Bookmarks(bookmarks []store.Bookmark) {
 	@Base()
+	<button type="button" id="mybtn">Show alert from data s script</button>
 	<div hx-ext="response-targets" class="flex justify-center items-center pt-6">
 		<form hx-post="/bookmarks" hx-trigger="submit" hx-target="#result" hx-swap="innerHTML" hx-target-error="#result" class="w-96" hx-on::after-request="this.reset()">
-			<input name="uri" class="rounded-lg w-full mb-2 p-4" placeholder="Add Post URI here"/>
+			<input id="uri-input" name="uri" class="rounded-lg w-full mb-2 p-4" placeholder="Add Post URI here"/>
 			<button class="py-1 px-4 w-full h-10 rounded-lg text-white bg-zinc-800">
 				Add Bookmark
 			</button>

@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../src/disposable-polyfill/index.ts"],"names":[],"mappings":";AAAA,yEAAyE;AACzE,6EAA6E;AAC7E,8EAA8E;AAC9E,+EAA+E;AAC/E,qBAAqB;AAErB,mBAAmB;AACnB,MAAM,CAAC,OAAO,KAAd,MAAM,CAAC,OAAO,GAAK,MAAM,CAAC,WAAW,CAAC,EAAA;AACtC,mBAAmB;AACnB,MAAM,CAAC,YAAY,KAAnB,MAAM,CAAC,YAAY,GAAK,MAAM,CAAC,gBAAgB,CAAC,EAAA"}

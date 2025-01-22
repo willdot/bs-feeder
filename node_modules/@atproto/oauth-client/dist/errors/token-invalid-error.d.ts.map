@@ -1,0 +1,1 @@
+{"version":3,"file":"token-invalid-error.d.ts","sourceRoot":"","sources":["../../src/errors/token-invalid-error.ts"],"names":[],"mappings":"AAAA,qBAAa,iBAAkB,SAAQ,KAAK;aAExB,GAAG,EAAE,MAAM;gBAAX,GAAG,EAAE,MAAM,EAC3B,OAAO,SAAwC,EAC/C,OAAO,CAAC,EAAE;QAAE,KAAK,CAAC,EAAE,OAAO,CAAA;KAAE;CAIhC"}

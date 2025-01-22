@@ -1,0 +1,16 @@
+{
+  "name": "oauth-helper",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "esbuild --bundle --minify --outfile=../public/index.js ./src/index.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"oauth-resolver-error.d.ts","sourceRoot":"","sources":["../src/oauth-resolver-error.ts"],"names":[],"mappings":"AAEA,qBAAa,kBAAmB,SAAQ,KAAK;gBAC/B,OAAO,EAAE,MAAM,EAAE,OAAO,CAAC,EAAE;QAAE,KAAK,CAAC,EAAE,OAAO,CAAA;KAAE;IAI1D,MAAM,CAAC,IAAI,CAAC,KAAK,EAAE,OAAO,EAAE,OAAO,CAAC,EAAE,MAAM,GAAG,kBAAkB;CAalE"}
