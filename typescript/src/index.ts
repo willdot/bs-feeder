@@ -7,8 +7,8 @@ import {
 configureOAuth({
   metadata: {
     client_id:
-      "https://bs-feeder-production.up.railway.app/client-metadata.json",
-    redirect_uri: "https://bs-feeder-production.up.railway.app/oauth/callback",
+      "https://bs-feeder-staging.up.railway.app/public/client-metadata.json",
+    redirect_uri: "https://bs-feeder-staging.up.railway.app/oauth/callback",
   },
 });
 function hello() {
