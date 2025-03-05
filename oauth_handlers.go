@@ -87,6 +87,8 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	u, _ := url.Parse(meta.AuthorizationEndpoint)
 	u.RawQuery = fmt.Sprintf("client_id=%s&request_uri=%s", url.QueryEscape(fmt.Sprintf("%s/client-metadata.json", serverBase)), parResp.RequestUri)
 
+	slog.Info("redirect to", "url", u.String())
+
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
