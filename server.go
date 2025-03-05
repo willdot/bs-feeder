@@ -171,3 +171,5 @@ func createOauthClient(jwks *JWKS) (*oauth.Client, error) {
 		RedirectUri: fmt.Sprintf("%s/oauth-callback", serverBase),
 	})
 }
+
+//did:plc:dadhhalkfcq3gucaq25hjqon

@@ -26,21 +26,21 @@ func (s *Server) serverJwks(w http.ResponseWriter, r *http.Request) {
 
 func serveClientMetadata(w http.ResponseWriter, r *http.Request) {
 	metadata := map[string]any{
-		// "client_id":                       serverMetadataUrl,
-		// "client_name":                     "Atproto Oauth Golang Tester",
-		// "client_uri":                      serverUrlRoot,
+		"client_id":   fmt.Sprintf("%s/client-metadata.json", serverBase),
+		"client_name": "BS Feeder",
+		"client_uri":  serverBase,
 		// "logo_uri":                        fmt.Sprintf("%s/logo.png", serverUrlRoot),
 		// "tos_uri":                         fmt.Sprintf("%s/tos", serverUrlRoot),
 		// "policy_url":                      fmt.Sprintf("%s/policy", serverUrlRoot),
-		// "redirect_uris":                   []string{serverCallbackUrl},
-		// "grant_types":                     []string{"authorization_code", "refresh_token"},
-		// "response_types":                  []string{"code"},
-		// "application_type":                "web",
-		// "dpop_bound_access_tokens":        true,
-		// "jwks_uri":                        fmt.Sprintf("%s/oauth/jwks.json", serverUrlRoot),
-		// "scope":                           "atproto transition:generic",
-		// "token_endpoint_auth_method":      "private_key_jwt",
-		// "token_endpoint_auth_signing_alg": "ES256",
+		"redirect_uris":                   []string{fmt.Sprintf("%s/oauth-callback", serverBase)},
+		"grant_types":                     []string{"authorization_code", "refresh_token"},
+		"response_types":                  []string{"code"},
+		"application_type":                "web",
+		"dpop_bound_access_tokens":        true,
+		"jwks_uri":                        fmt.Sprintf("%s/jwks.json", serverBase),
+		"scope":                           "atproto transition:generic",
+		"token_endpoint_auth_method":      "private_key_jwt",
+		"token_endpoint_auth_signing_alg": "ES256",
 	}
 
 	b, err := json.Marshal(metadata)
