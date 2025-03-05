@@ -70,9 +70,11 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 
 	did := session.Values["oauth_did"].(string)
 	slog.Info(did)
-	w.Header().Add("HX-Redirect", "/test")
-	http.Redirect(w, r, "/test", http.StatusOK)
+	// w.Header().Add("HX-Redirect", "/test")
+	// http.Redirect(w, r, "/test", http.StatusOK)
+	frontend.Home().Render(r.Context(), w)
 }
+
 func (s *Server) HandleTest(w http.ResponseWriter, r *http.Request) {
 	session, err := s.sessionStore.Get(r, "some-session")
 	if err != nil {
