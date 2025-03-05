@@ -108,7 +108,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	u.RawQuery = fmt.Sprintf("client_id=%s&request_uri=%s", url.QueryEscape(fmt.Sprintf("%s/client-metadata.json", serverBase)), parResp.RequestUri)
 
 	slog.Info("redirect to", "url", u.String())
-
+	w.Header().Add("HX-Redirect", u.String())
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
