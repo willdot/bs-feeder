@@ -6,7 +6,7 @@ templ Login(handle, errorMsg string) {
 }
 
 templ LoginForm(handle, errorMsg string) {
-	<form class="h-screen flex items-center justify-center" id="login-form" hx-swap="outerHTML" hx-post="/login" hx-ext="json-enc">
+	<form class="h-screen flex items-center justify-center" id="login-form" hx-post="/login" hx-ext="json-enc">
 		<div class="w-full max-w-sm">
 			<div class="md:flex md:items-center mb-6">
 				<div class="md:w-1/3">
