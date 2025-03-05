@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"github.com/bluesky-social/indigo/xrpc"
+	"github.com/gorilla/sessions"
 	oauth "github.com/haileyok/atproto-oauth-golang"
 	oauthhelpers "github.com/haileyok/atproto-oauth-golang/helpers"
 	"github.com/lestrrat-go/jwx/v2/jwk"
@@ -42,6 +43,7 @@ type Server struct {
 	xrpcClient    *xrpc.Client
 	jwks          *JWKS
 	oauthClient   *oauth.Client
+	sessionStore  *sessions.CookieStore
 }
 
 type JWKS struct {
@@ -60,6 +62,8 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 		return nil, fmt.Errorf("create oauth client: %w", err)
 	}
 
+	sessionStore := sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
+
 	srv := &Server{
 		feeder:        feeder,
 		feedHost:      feedHost,
@@ -67,6 +71,7 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 		bookmarkStore: bookmarkStore,
 		jwks:          jwks,
 		oauthClient:   oauthClient,
+		sessionStore:  sessionStore,
 	}
 
 	mux := http.NewServeMux()
@@ -80,7 +85,6 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 
 	mux.HandleFunc("/", srv.authMiddleware(srv.HandleGetBookmarks))
 	mux.HandleFunc("/login", srv.HandleLogin)
-	mux.HandleFunc("/login-temp", srv.HandleLoginTemp)
 	// mux.HandleFunc("/sign-out", srv.HandleSignOut)
 	mux.HandleFunc("GET /bookmarks", srv.authMiddleware(srv.HandleGetBookmarks))
 	mux.HandleFunc("POST /bookmarks", srv.authMiddleware(srv.HandleAddBookmark))

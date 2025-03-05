@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/gorilla/sessions"
 	oauth "github.com/haileyok/atproto-oauth-golang"
 	oauthhelpers "github.com/haileyok/atproto-oauth-golang/helpers"
 	"github.com/willdot/bskyfeedgen/frontend"
@@ -59,26 +60,17 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 	resCode := r.FormValue("code")
 
 	slog.Info("callback", "res state", resState, "res iss", resIss, "res code", resCode)
-}
 
-func (s *Server) HandleLoginTemp(w http.ResponseWriter, r *http.Request) {
-	loginReq := loginRequest{
-		Handle: "willdot.net",
-	}
-	parResp, meta, err := s.parseLoginRequest(r.Context(), loginReq)
+	session, err := s.sessionStore.Get(r, "some-session")
 	if err != nil {
-		slog.Error("handle login request", "error", err)
-		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		slog.Error("getting session", "error", err)
+		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
 		return
 	}
 
-	u, _ := url.Parse(meta.AuthorizationEndpoint)
-	u.RawQuery = fmt.Sprintf("client_id=%s&request_uri=%s", url.QueryEscape(fmt.Sprintf("%s/client-metadata.json", serverBase)), parResp.RequestUri)
-
-	slog.Info("redirect to", "url", u.String())
-
-	w.Header().Add("HX-Redirect", u.String())
-	http.Redirect(w, r, u.String(), http.StatusFound)
+	did := session.Values["oauth_did"].(string)
+	slog.Info(did)
+	http.Redirect(w, r, "/", http.StatusOK)
 }
 
 func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
@@ -107,9 +99,30 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	u, _ := url.Parse(meta.AuthorizationEndpoint)
 	u.RawQuery = fmt.Sprintf("client_id=%s&request_uri=%s", url.QueryEscape(fmt.Sprintf("%s/client-metadata.json", serverBase)), parResp.RequestUri)
 
-	slog.Info("redirect to", "url", u.String())
+	// ignore error here as it only returns an error for decoding an existing session but it will always return a session anyway which
+	// is what we want
+	session, _ := s.sessionStore.Get(r, "some-session")
+	session.Values = map[interface{}]interface{}{}
+
+	session.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   300, // save for five minutes
+		HttpOnly: true,
+	}
+
+	session.Values["oauth_state"] = parResp.State
+	//TODO: get did from handle
+	session.Values["oauth_did"] = "did:plc:dadhhalkfcq3gucaq25hjqon"
+
+	err = session.Save(r, w)
+	if err != nil {
+		slog.Error("save session", "error", err)
+		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		return
+	}
+
 	w.Header().Add("HX-Redirect", u.String())
-	http.Redirect(w, r, u.String(), http.StatusFound)
+	http.Redirect(w, r, u.String(), http.StatusOK)
 }
 
 func (s *Server) parseLoginRequest(ctx context.Context, req loginRequest) (*oauth.SendParAuthResponse, *oauth.OauthAuthorizationMetadata, error) {
