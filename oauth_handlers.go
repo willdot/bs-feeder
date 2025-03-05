@@ -82,7 +82,12 @@ func (s *Server) HandleTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	did := session.Values["oauth_did"].(string)
+	did, ok := session.Values["oauth_did"].(string)
+	if !ok {
+		slog.Error("couldn't find oauth_did in session")
+		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
+		return
+	}
 	slog.Info(did)
 }
 
