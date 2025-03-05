@@ -77,6 +77,7 @@ func (s *Server) HandleLoginTemp(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("redirect to", "url", u.String())
 
+	w.Header().Add("HX-Redirect", u.String())
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
