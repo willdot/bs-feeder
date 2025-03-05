@@ -93,7 +93,8 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) parseLoginRequest(ctx context.Context, req loginRequest) (*oauth.SendParAuthResponse, *oauth.OauthAuthorizationMetadata, error) {
-	service, err := resolveService(ctx, req.Handle)
+	//TODO: get did from handle
+	service, err := resolveService(ctx, "did:plc:dadhhalkfcq3gucaq25hjqon")
 	if err != nil {
 		return nil, nil, err
 	}
