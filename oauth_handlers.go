@@ -61,6 +61,25 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 	slog.Info("callback", "res state", resState, "res iss", resIss, "res code", resCode)
 }
 
+func (s *Server) HandleLoginTemp(w http.ResponseWriter, r *http.Request) {
+	loginReq := loginRequest{
+		Handle: "willdot.net",
+	}
+	parResp, meta, err := s.parseLoginRequest(r.Context(), loginReq)
+	if err != nil {
+		slog.Error("handle login request", "error", err)
+		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		return
+	}
+
+	u, _ := url.Parse(meta.AuthorizationEndpoint)
+	u.RawQuery = fmt.Sprintf("client_id=%s&request_uri=%s", url.QueryEscape(fmt.Sprintf("%s/client-metadata.json", serverBase)), parResp.RequestUri)
+
+	slog.Info("redirect to", "url", u.String())
+
+	http.Redirect(w, r, u.String(), http.StatusFound)
+}
+
 func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 	if err != nil {

@@ -80,6 +80,7 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 
 	mux.HandleFunc("/", srv.authMiddleware(srv.HandleGetBookmarks))
 	mux.HandleFunc("/login", srv.HandleLogin)
+	mux.HandleFunc("/login-temp", srv.HandleLoginTemp)
 	// mux.HandleFunc("/sign-out", srv.HandleSignOut)
 	mux.HandleFunc("GET /bookmarks", srv.authMiddleware(srv.HandleGetBookmarks))
 	mux.HandleFunc("POST /bookmarks", srv.authMiddleware(srv.HandleAddBookmark))
