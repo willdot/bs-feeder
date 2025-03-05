@@ -3,12 +3,22 @@ package main
 import (
 	"context"
 	_ "embed"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/bluesky-social/indigo/xrpc"
+	oauth "github.com/haileyok/atproto-oauth-golang"
+	oauthhelpers "github.com/haileyok/atproto-oauth-golang/helpers"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/willdot/bskyfeedgen/store"
+)
+
+const (
+	serverBase = "https://bs-feeder-staging.up.railway.app"
 )
 
 type Feeder interface {
@@ -30,14 +40,33 @@ type Server struct {
 	feedDidBase   string
 	bookmarkStore BookmarkStore
 	xrpcClient    *xrpc.Client
+	jwks          *JWKS
+	oauthClient   *oauth.Client
 }
 
-func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkStore BookmarkStore) *Server {
+type JWKS struct {
+	public  []byte
+	private jwk.Key
+}
+
+func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkStore BookmarkStore) (*Server, error) {
+	jwks, err := getJWKS()
+	if err != nil {
+		return nil, fmt.Errorf("create public JWKS: %w", err)
+	}
+
+	oauthClient, err := createOauthClient(jwks)
+	if err != nil {
+		return nil, fmt.Errorf("create oauth client: %w", err)
+	}
+
 	srv := &Server{
 		feeder:        feeder,
 		feedHost:      feedHost,
 		feedDidBase:   feedDidBase,
 		bookmarkStore: bookmarkStore,
+		jwks:          jwks,
+		oauthClient:   oauthClient,
 	}
 
 	mux := http.NewServeMux()
@@ -45,10 +74,13 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 	mux.HandleFunc("/xrpc/app.bsky.feed.getFeedSkeleton", srv.HandleGetFeedSkeleton)
 	mux.HandleFunc("/xrpc/app.bsky.feed.describeFeedGenerator", srv.HandleDescribeFeedGenerator)
 	mux.HandleFunc("/.well-known/did.json", srv.HandleWellKnown)
+	mux.HandleFunc("/client-metadata.json", serveClientMetadata)
+	mux.HandleFunc("/jwks.json", srv.serverJwks)
+	mux.HandleFunc("/oauth-callback", srv.handleOauthCallback)
 
 	mux.HandleFunc("/", srv.authMiddleware(srv.HandleGetBookmarks))
 	mux.HandleFunc("/login", srv.HandleLogin)
-	mux.HandleFunc("/sign-out", srv.HandleSignOut)
+	// mux.HandleFunc("/sign-out", srv.HandleSignOut)
 	mux.HandleFunc("GET /bookmarks", srv.authMiddleware(srv.HandleGetBookmarks))
 	mux.HandleFunc("POST /bookmarks", srv.authMiddleware(srv.HandleAddBookmark))
 	mux.HandleFunc("DELETE /bookmarks/{rkey}", srv.authMiddleware(srv.HandleDeleteBookmark))
@@ -65,7 +97,7 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 		Host: "https://public.api.bsky.app",
 	}
 
-	return srv
+	return srv, nil
 }
 
 func (s *Server) Run() {
@@ -97,4 +129,45 @@ func getUsersDidFromRequestCookie(r *http.Request) (string, error) {
 	}
 
 	return didCookie.Value, nil
+}
+
+func getJWKS() (*JWKS, error) {
+	jwksB64 := os.Getenv("PRIVATEJWKS")
+	if jwksB64 == "" {
+		return nil, fmt.Errorf("PRIVATEJWKS env not set")
+	}
+
+	jwksB, err := base64.StdEncoding.DecodeString(jwksB64)
+	if err != nil {
+		return nil, fmt.Errorf("decode jwks env: %w", err)
+	}
+
+	k, err := oauthhelpers.ParseJWKFromBytes([]byte(jwksB))
+	if err != nil {
+		return nil, fmt.Errorf("parse JWK from bytes: %w", err)
+	}
+
+	pubkey, err := k.PublicKey()
+	if err != nil {
+		return nil, fmt.Errorf("get public key from JWKS: %w", err)
+	}
+
+	resp := oauthhelpers.CreateJwksResponseObject(pubkey)
+	b, err := json.Marshal(resp)
+	if err != nil {
+		return nil, fmt.Errorf("marshal public JWKS: %w", err)
+	}
+
+	return &JWKS{
+		public:  b,
+		private: k,
+	}, nil
+}
+
+func createOauthClient(jwks *JWKS) (*oauth.Client, error) {
+	return oauth.NewClient(oauth.ClientArgs{
+		ClientJwk:   jwks.private,
+		ClientId:    fmt.Sprintf("%s/client-metadata.json", serverBase),
+		RedirectUri: fmt.Sprintf("%s/oauth-callback", serverBase),
+	})
 }

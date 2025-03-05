@@ -1,10 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -30,105 +26,105 @@ type BskyAuth struct {
 	Did       string `json:"did"`
 }
 
-func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		slog.Error("failed to read body", "error", err)
-		_ = frontend.LoginForm("", "bad request").Render(r.Context(), w)
-		return
-	}
+// func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
+// 	b, err := io.ReadAll(r.Body)
+// 	if err != nil {
+// 		slog.Error("failed to read body", "error", err)
+// 		_ = frontend.LoginForm("", "bad request").Render(r.Context(), w)
+// 		return
+// 	}
 
-	var loginReq loginRequest
-	err = json.Unmarshal(b, &loginReq)
-	if err != nil {
-		slog.Error("failed to unmarshal body", "error", err)
-		_ = frontend.LoginForm("", "bad request").Render(r.Context(), w)
-		return
-	}
-	url := fmt.Sprintf("%s/com.atproto.server.createsession", bskyBaseURL)
+// 	var loginReq loginRequest
+// 	err = json.Unmarshal(b, &loginReq)
+// 	if err != nil {
+// 		slog.Error("failed to unmarshal body", "error", err)
+// 		_ = frontend.LoginForm("", "bad request").Render(r.Context(), w)
+// 		return
+// 	}
+// 	url := fmt.Sprintf("%s/com.atproto.server.createsession", bskyBaseURL)
 
-	requestData := map[string]interface{}{
-		"identifier": loginReq.Handle,
-		"password":   loginReq.AppPassword,
-	}
+// 	requestData := map[string]interface{}{
+// 		"identifier": loginReq.Handle,
+// 		"password":   loginReq.AppPassword,
+// 	}
 
-	data, err := json.Marshal(requestData)
-	if err != nil {
-		slog.Error("failed marshal POST request to sign into Bsky", "error", err)
-		_ = frontend.LoginForm(loginReq.Handle, "internal error").Render(r.Context(), w)
-		return
-	}
+// 	data, err := json.Marshal(requestData)
+// 	if err != nil {
+// 		slog.Error("failed marshal POST request to sign into Bsky", "error", err)
+// 		_ = frontend.LoginForm(loginReq.Handle, "internal error").Render(r.Context(), w)
+// 		return
+// 	}
 
-	reader := bytes.NewReader(data)
+// 	reader := bytes.NewReader(data)
 
-	req, err := http.NewRequest("POST", url, reader)
-	if err != nil {
-		slog.Error("failed to create POST request to sign into Bsky", "error", err)
-		_ = frontend.LoginForm(loginReq.Handle, "internal error").Render(r.Context(), w)
-		return
-	}
+// 	req, err := http.NewRequest("POST", url, reader)
+// 	if err != nil {
+// 		slog.Error("failed to create POST request to sign into Bsky", "error", err)
+// 		_ = frontend.LoginForm(loginReq.Handle, "internal error").Render(r.Context(), w)
+// 		return
+// 	}
 
-	req.Header.Add("Content-Type", "application/json")
+// 	req.Header.Add("Content-Type", "application/json")
 
-	// TODO: create a client somewhere
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		slog.Error("failed to make POST request to sign into Bsky", "error", err)
-		_ = frontend.LoginForm(loginReq.Handle, "internal error").Render(r.Context(), w)
-		return
-	}
+// 	// TODO: create a client somewhere
+// 	res, err := http.DefaultClient.Do(req)
+// 	if err != nil {
+// 		slog.Error("failed to make POST request to sign into Bsky", "error", err)
+// 		_ = frontend.LoginForm(loginReq.Handle, "internal error").Render(r.Context(), w)
+// 		return
+// 	}
 
-	defer res.Body.Close()
+// 	defer res.Body.Close()
 
-	slog.Info("bsky resp", "code", res.StatusCode)
+// 	slog.Info("bsky resp", "code", res.StatusCode)
 
-	if res.StatusCode != 200 {
-		slog.Error("failed to log into bluesky", "status code", res.StatusCode)
-		_ = frontend.LoginForm(loginReq.Handle, "not authorized").Render(r.Context(), w)
-		return
-	}
+// 	if res.StatusCode != 200 {
+// 		slog.Error("failed to log into bluesky", "status code", res.StatusCode)
+// 		_ = frontend.LoginForm(loginReq.Handle, "not authorized").Render(r.Context(), w)
+// 		return
+// 	}
 
-	resBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		slog.Error("failed read response from Bsky login", "error", err)
-		_ = frontend.LoginForm(loginReq.Handle, "internal error").Render(r.Context(), w)
-		return
-	}
+// 	resBody, err := io.ReadAll(res.Body)
+// 	if err != nil {
+// 		slog.Error("failed read response from Bsky login", "error", err)
+// 		_ = frontend.LoginForm(loginReq.Handle, "internal error").Render(r.Context(), w)
+// 		return
+// 	}
 
-	var loginResp BskyAuth
-	err = json.Unmarshal(resBody, &loginResp)
-	if err != nil {
-		slog.Error("failed unmarshal response from Bsky login", "error", err)
-		_ = frontend.LoginForm(loginReq.Handle, "internal error").Render(r.Context(), w)
-		return
-	}
+// 	var loginResp BskyAuth
+// 	err = json.Unmarshal(resBody, &loginResp)
+// 	if err != nil {
+// 		slog.Error("failed unmarshal response from Bsky login", "error", err)
+// 		_ = frontend.LoginForm(loginReq.Handle, "internal error").Render(r.Context(), w)
+// 		return
+// 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:  jwtCookieName,
-		Value: loginResp.AccessJwt,
-	})
+// 	http.SetCookie(w, &http.Cookie{
+// 		Name:  jwtCookieName,
+// 		Value: loginResp.AccessJwt,
+// 	})
 
-	http.SetCookie(w, &http.Cookie{
-		Name:  didCookieName,
-		Value: loginResp.Did,
-	})
+// 	http.SetCookie(w, &http.Cookie{
+// 		Name:  didCookieName,
+// 		Value: loginResp.Did,
+// 	})
 
-	http.Redirect(w, r, "/", http.StatusOK)
-}
+// 	http.Redirect(w, r, "/", http.StatusOK)
+// }
 
-func (s *Server) HandleSignOut(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{
-		Name:  jwtCookieName,
-		Value: "",
-	})
+// func (s *Server) HandleSignOut(w http.ResponseWriter, r *http.Request) {
+// 	http.SetCookie(w, &http.Cookie{
+// 		Name:  jwtCookieName,
+// 		Value: "",
+// 	})
 
-	http.SetCookie(w, &http.Cookie{
-		Name:  didCookieName,
-		Value: "",
-	})
+// 	http.SetCookie(w, &http.Cookie{
+// 		Name:  didCookieName,
+// 		Value: "",
+// 	})
 
-	_ = frontend.Login("", "").Render(r.Context(), w)
-}
+// 	_ = frontend.Login("", "").Render(r.Context(), w)
+// }
 
 func (s *Server) authMiddleware(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {

@@ -83,7 +83,12 @@ func main() {
 		go consumeLoop(ctx, store)
 	}
 
-	server := NewServer(443, feeder, feedHost, feedDidBase, store)
+	server, err := NewServer(443, feeder, feedHost, feedDidBase, store)
+	if err != nil {
+		slog.Error("create new server", "error", err)
+		_ = bugsnag.Notify(err)
+		return
+	}
 	go func() {
 		<-signals
 		cancel()
