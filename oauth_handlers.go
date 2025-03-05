@@ -70,7 +70,17 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 
 	did := session.Values["oauth_did"].(string)
 	slog.Info(did)
-	http.Redirect(w, r, "/", http.StatusOK)
+	http.Redirect(w, r, "/test", http.StatusOK)
+}
+func (s *Server) HandleTest(w http.ResponseWriter, r *http.Request) {
+	session, err := s.sessionStore.Get(r, "some-session")
+	if err != nil {
+		slog.Error("getting session", "error", err)
+		return
+	}
+
+	did := session.Values["oauth_did"].(string)
+	slog.Info(did)
 }
 
 func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {

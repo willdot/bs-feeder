@@ -83,6 +83,8 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 	mux.HandleFunc("/jwks.json", srv.serverJwks)
 	mux.HandleFunc("/oauth-callback", srv.handleOauthCallback)
 
+	mux.HandleFunc("/test", srv.HandleTest)
+
 	mux.HandleFunc("/", srv.authMiddleware(srv.HandleGetBookmarks))
 	mux.HandleFunc("/login", srv.HandleLogin)
 	// mux.HandleFunc("/sign-out", srv.HandleSignOut)
