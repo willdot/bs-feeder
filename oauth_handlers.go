@@ -241,11 +241,8 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// w.Header().Add("HX-Redirect", "/bookmarks")
-	// http.Redirect(w, r, "/bookmarks", http.StatusOK)
-	// s.HandleGetBookmarks(w, r)
-	w.Header().Set("HX-Redirect", "/bookmarks")
-	w.WriteHeader(http.StatusNoContent)
+	// TODO: work out how the hell HTMX redirects really work
+	s.HandleGetBookmarks(w, r)
 }
 
 func (s *Server) HandleSignOut(w http.ResponseWriter, r *http.Request) {
