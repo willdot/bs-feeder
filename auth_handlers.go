@@ -16,15 +16,16 @@ type loginRequest struct {
 	Handle string `json:"handle"`
 }
 
-func (s *Server) authMiddleware(next func(http.ResponseWriter, *http.Request, string)) func(http.ResponseWriter, *http.Request) {
+func (s *Server) authMiddleware(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		did, ok := s.getDidFromSession(r)
+		_, ok := s.getDidFromSession(r)
 		if !ok {
+			slog.Warn("did not found in session")
 			_ = frontend.Login("", "").Render(r.Context(), w)
 			return
 		}
 
-		next(w, r, did)
+		next(w, r)
 	}
 }
 

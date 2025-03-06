@@ -234,6 +234,13 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 	session.Values = map[interface{}]interface{}{}
 	session.Values["did"] = oauthRequest.Did
 
+	err = session.Save(r, w)
+	if err != nil {
+		slog.Error("save session", "error", err)
+		_ = frontend.Login("", "internal server errror").Render(r.Context(), w)
+		return
+	}
+
 	frontend.Home().Render(r.Context(), w)
 }
 
