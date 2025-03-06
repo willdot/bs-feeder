@@ -137,7 +137,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("HX-Redirect", u.String())
+	w.Header().Add("HX-Redirect", "/")
 	http.Redirect(w, r, u.String(), http.StatusOK)
 }
 
@@ -241,6 +241,7 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Add("HX-Redirect", "/bookmarks")
 	http.Redirect(w, r, "/bookmarks", http.StatusOK)
 }
 
