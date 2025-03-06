@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/sessions"
 	oauth "github.com/haileyok/atproto-oauth-golang"
 	oauthhelpers "github.com/haileyok/atproto-oauth-golang/helpers"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/willdot/bskyfeedgen/frontend"
 	"github.com/willdot/bskyfeedgen/store"
 )
@@ -77,16 +78,16 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("users did", "did", usersDID)
 
-	parResp, meta, err := s.parseLoginRequest(r.Context(), usersDID, loginReq.Handle)
+	dpopPrivateKey, err := oauthhelpers.GenerateKey(nil)
 	if err != nil {
-		slog.Error("handle login request", "error", err)
+		slog.Error("generate key", "error", err)
 		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
 		return
 	}
 
-	dpopPrivateKey, err := oauthhelpers.GenerateKey(nil)
+	parResp, meta, err := s.parseLoginRequest(r.Context(), usersDID, loginReq.Handle, dpopPrivateKey)
 	if err != nil {
-		slog.Error("generate key", "error", err)
+		slog.Error("handle login request", "error", err)
 		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
 		return
 	}
@@ -142,7 +143,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, u.String(), http.StatusOK)
 }
 
-func (s *Server) parseLoginRequest(ctx context.Context, did, handle string) (*oauth.SendParAuthResponse, *oauth.OauthAuthorizationMetadata, error) {
+func (s *Server) parseLoginRequest(ctx context.Context, did, handle string, dpopPrivateKey jwk.Key) (*oauth.SendParAuthResponse, *oauth.OauthAuthorizationMetadata, error) {
 	service, err := resolveService(ctx, did)
 	if err != nil {
 		return nil, nil, err
@@ -154,11 +155,6 @@ func (s *Server) parseLoginRequest(ctx context.Context, did, handle string) (*oa
 	}
 
 	meta, err := s.oauthClient.FetchAuthServerMetadata(ctx, authserver)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	dpopPrivateKey, err := oauthhelpers.GenerateKey(nil)
 	if err != nil {
 		return nil, nil, err
 	}
