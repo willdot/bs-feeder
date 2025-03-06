@@ -238,7 +238,7 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleSignOut(w http.ResponseWriter, r *http.Request) {
-	session, err := s.sessionStore.Get(r, "some-session")
+	session, err := s.sessionStore.Get(r, "oauth-session")
 	if err != nil {
 		slog.Error("getting session", "error", err)
 		_ = frontend.Login("", "internal server error").Render(r.Context(), w)

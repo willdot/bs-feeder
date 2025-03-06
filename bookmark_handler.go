@@ -16,13 +16,13 @@ import (
 	"github.com/willdot/bskyfeedgen/store"
 )
 
-func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
-	usersDid, ok := s.getDidFromSession(r)
-	if !ok {
-		slog.Warn("did not found in session")
-		_ = frontend.Login("", "").Render(r.Context(), w)
-		return
-	}
+func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request, usersDid string) {
+	// usersDid, ok := s.getDidFromSession(r)
+	// if !ok {
+	// 	slog.Warn("did not found in session")
+	// 	_ = frontend.Login("", "").Render(r.Context(), w)
+	// 	return
+	// }
 
 	postURI := r.FormValue("uri")
 	postURI = strings.TrimSuffix(postURI, "/")
@@ -112,15 +112,15 @@ func convertPostURIToAtValidURI(input string) (string, error) {
 	return fmt.Sprintf("at://%s", strings.ReplaceAll(input, "post", "app.bsky.feed.post")), nil
 }
 
-func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request, usersDid string) {
 	rKey := r.PathValue("rkey")
 
-	usersDid, ok := s.getDidFromSession(r)
-	if !ok {
-		slog.Warn("did not found in session")
-		_ = frontend.Login("", "").Render(r.Context(), w)
-		return
-	}
+	// usersDid, ok := s.getDidFromSession(r)
+	// if !ok {
+	// 	slog.Warn("did not found in session")
+	// 	_ = frontend.Login("", "").Render(r.Context(), w)
+	// 	return
+	// }
 
 	bookmark, err := s.bookmarkStore.GetBookmarkByRKeyForUser(rKey, usersDid)
 	if err != nil {
@@ -148,13 +148,13 @@ func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("{}"))
 }
 
-func (s *Server) HandleGetBookmarks(w http.ResponseWriter, r *http.Request) {
-	usersDid, ok := s.getDidFromSession(r)
-	if !ok {
-		slog.Warn("did not found in session")
-		_ = frontend.Login("", "").Render(r.Context(), w)
-		return
-	}
+func (s *Server) HandleGetBookmarks(w http.ResponseWriter, r *http.Request, usersDid string) {
+	// usersDid, ok := s.getDidFromSession(r)
+	// if !ok {
+	// 	slog.Warn("did not found in session")
+	// 	_ = frontend.Login("", "").Render(r.Context(), w)
+	// 	return
+	// }
 
 	bookmarks, err := s.bookmarkStore.GetBookmarksForUser(usersDid)
 	if err != nil {

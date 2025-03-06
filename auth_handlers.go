@@ -16,15 +16,15 @@ type loginRequest struct {
 	Handle string `json:"handle"`
 }
 
-func (s *Server) authMiddleware(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func (s *Server) authMiddleware(next func(http.ResponseWriter, *http.Request, string)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, ok := s.getDidFromSession(r)
+		did, ok := s.getDidFromSession(r)
 		if !ok {
 			_ = frontend.Login("", "").Render(r.Context(), w)
 			return
 		}
 
-		next(w, r)
+		next(w, r, did)
 	}
 }
 
