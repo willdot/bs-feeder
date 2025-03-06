@@ -27,17 +27,17 @@ func (s *Server) serverJwks(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(s.jwks.public)
 }
 
-func serveClientMetadata(w http.ResponseWriter, r *http.Request) {
+func (s *Server) serveClientMetadata(w http.ResponseWriter, r *http.Request) {
 	metadata := map[string]any{
-		"client_id":                       fmt.Sprintf("%s/client-metadata.json", serverBase),
+		"client_id":                       fmt.Sprintf("https://%s/client-metadata.json", s.feedHost),
 		"client_name":                     "BS Feeder",
-		"client_uri":                      serverBase,
-		"redirect_uris":                   []string{fmt.Sprintf("%s/oauth-callback", serverBase)},
+		"client_uri":                      fmt.Sprintf("https://%s", s.feedHost),
+		"redirect_uris":                   []string{fmt.Sprintf("https://%s/oauth-callback", s.feedHost)},
 		"grant_types":                     []string{"authorization_code", "refresh_token"},
 		"response_types":                  []string{"code"},
 		"application_type":                "web",
 		"dpop_bound_access_tokens":        true,
-		"jwks_uri":                        fmt.Sprintf("%s/jwks.json", serverBase),
+		"jwks_uri":                        fmt.Sprintf("https://%s/jwks.json", s.feedHost),
 		"scope":                           "atproto transition:generic",
 		"token_endpoint_auth_method":      "private_key_jwt",
 		"token_endpoint_auth_signing_alg": "ES256",
@@ -114,7 +114,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u, _ := url.Parse(meta.AuthorizationEndpoint)
-	u.RawQuery = fmt.Sprintf("client_id=%s&request_uri=%s", url.QueryEscape(fmt.Sprintf("%s/client-metadata.json", serverBase)), parResp.RequestUri)
+	u.RawQuery = fmt.Sprintf("client_id=%s&request_uri=%s", url.QueryEscape(fmt.Sprintf("https://%s/client-metadata.json", s.feedHost)), parResp.RequestUri)
 
 	// ignore error here as it only returns an error for decoding an existing session but it will always return a session anyway which
 	// is what we want

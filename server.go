@@ -18,10 +18,6 @@ import (
 	"github.com/willdot/bskyfeedgen/store"
 )
 
-const (
-	serverBase = "https://bs-feeder-staging.up.railway.app"
-)
-
 type Feeder interface {
 	GetFeed(ctx context.Context, userDID, feed, cursor string, limit int) (FeedReponse, error)
 }
@@ -69,7 +65,7 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, store Stor
 		return nil, fmt.Errorf("create public JWKS: %w", err)
 	}
 
-	oauthClient, err := createOauthClient(jwks)
+	oauthClient, err := createOauthClient(jwks, fmt.Sprintf("https://%s", feedHost))
 	if err != nil {
 		return nil, fmt.Errorf("create oauth client: %w", err)
 	}
@@ -92,7 +88,7 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, store Stor
 	mux.HandleFunc("/xrpc/app.bsky.feed.getFeedSkeleton", srv.HandleGetFeedSkeleton)
 	mux.HandleFunc("/xrpc/app.bsky.feed.describeFeedGenerator", srv.HandleDescribeFeedGenerator)
 	mux.HandleFunc("/.well-known/did.json", srv.HandleWellKnown)
-	mux.HandleFunc("/client-metadata.json", serveClientMetadata)
+	mux.HandleFunc("/client-metadata.json", srv.serveClientMetadata)
 	mux.HandleFunc("/jwks.json", srv.serverJwks)
 	mux.HandleFunc("/oauth-callback", srv.handleOauthCallback)
 
@@ -170,7 +166,7 @@ func getJWKS() (*JWKS, error) {
 	}, nil
 }
 
-func createOauthClient(jwks *JWKS) (*oauth.Client, error) {
+func createOauthClient(jwks *JWKS, serverBase string) (*oauth.Client, error) {
 	return oauth.NewClient(oauth.ClientArgs{
 		ClientJwk:   jwks.private,
 		ClientId:    fmt.Sprintf("%s/client-metadata.json", serverBase),
