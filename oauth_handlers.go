@@ -242,6 +242,7 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: work out how the hell HTMX redirects really work
+	w.Header().Add("HX-Replace-Url", "/bookmarks")
 	s.HandleGetBookmarks(w, r)
 }
 
