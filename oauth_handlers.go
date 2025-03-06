@@ -203,6 +203,8 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("oauth request", "val", oauthRequest)
+
 	err = s.oauthRequestStore.DeleteOauthRequest(fmt.Sprintf("%s", sessionState))
 	if err != nil {
 		slog.Error("delete oauth request from store", "error", err)
