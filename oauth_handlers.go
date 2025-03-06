@@ -243,7 +243,9 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 
 	// w.Header().Add("HX-Redirect", "/bookmarks")
 	// http.Redirect(w, r, "/bookmarks", http.StatusOK)
-	s.HandleGetBookmarks(w, r)
+	// s.HandleGetBookmarks(w, r)
+	w.Header().Set("HX-Redirect", "/bookmarks")
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) HandleSignOut(w http.ResponseWriter, r *http.Request) {
