@@ -137,7 +137,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("HX-Redirect", "/")
+	w.Header().Add("HX-Redirect", u.String())
 	http.Redirect(w, r, u.String(), http.StatusOK)
 }
 
