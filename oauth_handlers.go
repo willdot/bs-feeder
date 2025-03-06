@@ -241,7 +241,7 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	frontend.Home().Render(r.Context(), w)
+	http.Redirect(w, r, "/bookmarks", http.StatusOK)
 }
 
 func (s *Server) HandleSignOut(w http.ResponseWriter, r *http.Request) {
