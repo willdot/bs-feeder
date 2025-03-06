@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.1
 
 require (
-	github.com/a-h/templ v0.2.793
+	github.com/a-h/templ v0.3.833
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/bluesky-social/indigo v0.0.0-20250301025210-a4e0cc37e188
 	github.com/bluesky-social/jetstream v0.0.0-20241031234625-0ab10bd041fe
