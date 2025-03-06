@@ -68,7 +68,7 @@ func (s *Store) GetOauthRequest(state string) (OauthRequest, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		if err := rows.Scan(oauthRequest.AuthserverIss, oauthRequest.State, oauthRequest.Did, oauthRequest.PkceVerifier, oauthRequest.DpopAuthserverNonce, oauthRequest.DpopPrivateJwk); err != nil {
+		if err := rows.Scan(&oauthRequest.AuthserverIss, &oauthRequest.State, &oauthRequest.Did, &oauthRequest.PkceVerifier, &oauthRequest.DpopAuthserverNonce, &oauthRequest.DpopPrivateJwk); err != nil {
 			return oauthRequest, fmt.Errorf("scan row: %w", err)
 		}
 
