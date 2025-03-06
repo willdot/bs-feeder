@@ -96,9 +96,7 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, store Stor
 	mux.HandleFunc("/jwks.json", srv.serverJwks)
 	mux.HandleFunc("/oauth-callback", srv.handleOauthCallback)
 
-	mux.HandleFunc("/something", func(w http.ResponseWriter, r *http.Request) {
-
-	})
+	mux.HandleFunc("/redirect", HandleRedirect)
 
 	mux.HandleFunc("/", srv.authMiddleware(srv.HandleGetBookmarks))
 	mux.HandleFunc("/login", srv.HandleLogin)
