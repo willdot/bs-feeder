@@ -57,7 +57,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		slog.Error("failed to read body", "error", err)
-		_ = frontend.LoginForm("", "bad request").Render(r.Context(), w)
+		_ = frontend.Login("", "bad request").Render(r.Context(), w)
 		return
 	}
 
@@ -65,37 +65,35 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(b, &loginReq)
 	if err != nil {
 		slog.Error("failed to unmarshal body", "error", err)
-		_ = frontend.LoginForm("", "bad request").Render(r.Context(), w)
+		_ = frontend.Login("", "bad request").Render(r.Context(), w)
 		return
 	}
 
 	usersDID, err := resolveHandle(loginReq.Handle)
 	if err != nil {
 		slog.Error("resolve users handle", "error", err)
-		_ = frontend.LoginForm("", "bad request").Render(r.Context(), w)
+		_ = frontend.Login("", "bad request").Render(r.Context(), w)
 		return
 	}
-
-	slog.Info("users did", "did", usersDID)
 
 	dpopPrivateKey, err := oauthhelpers.GenerateKey(nil)
 	if err != nil {
 		slog.Error("generate key", "error", err)
-		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server errror").Render(r.Context(), w)
 		return
 	}
 
 	parResp, meta, err := s.parseLoginRequest(r.Context(), usersDID, loginReq.Handle, dpopPrivateKey)
 	if err != nil {
 		slog.Error("handle login request", "error", err)
-		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server errror").Render(r.Context(), w)
 		return
 	}
 
 	dpopPrivateKeyJson, err := json.Marshal(dpopPrivateKey)
 	if err != nil {
 		slog.Error("marshal key", "error", err)
-		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server errror").Render(r.Context(), w)
 		return
 	}
 
@@ -111,7 +109,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// TODO: catch already exists
 		slog.Error("create oauth request in store", "error", err)
-		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server errror").Render(r.Context(), w)
 		return
 	}
 
@@ -135,7 +133,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	err = session.Save(r, w)
 	if err != nil {
 		slog.Error("save session", "error", err)
-		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server errror").Render(r.Context(), w)
 		return
 	}
 
@@ -174,7 +172,7 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 	session, err := s.sessionStore.Get(r, "oauth-session")
 	if err != nil {
 		slog.Error("getting session", "error", err)
-		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server error").Render(r.Context(), w)
 		return
 	}
 
@@ -182,49 +180,47 @@ func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
 
 	if resState == "" || resIss == "" || resCode == "" {
 		slog.Error("request missing needed parameters")
-		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server error").Render(r.Context(), w)
 		return
 	}
 
 	if resState != sessionState {
 		slog.Error("session state does not match response state")
-		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server error").Render(r.Context(), w)
 		return
 	}
 
 	oauthRequest, err := s.oauthRequestStore.GetOauthRequest(fmt.Sprintf("%s", sessionState))
 	if err != nil {
 		slog.Error("get oauth request from store", "error", err)
-		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server errror").Render(r.Context(), w)
 		return
 	}
-
-	slog.Info("oauth request", "val", oauthRequest)
 
 	err = s.oauthRequestStore.DeleteOauthRequest(fmt.Sprintf("%s", sessionState))
 	if err != nil {
 		slog.Error("delete oauth request from store", "error", err)
-		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server errror").Render(r.Context(), w)
 		return
 	}
 
 	jwk, err := oauthhelpers.ParseJWKFromBytes([]byte(oauthRequest.DpopPrivateJwk))
 	if err != nil {
 		slog.Error("parse JWK", "error", err)
-		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server errror").Render(r.Context(), w)
 		return
 	}
 
 	initialTokenResp, err := s.oauthClient.InitialTokenRequest(r.Context(), resCode, resIss, oauthRequest.PkceVerifier, oauthRequest.DpopAuthserverNonce, jwk)
 	if err != nil {
 		slog.Error("getting token from request", "error", err)
-		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server error").Render(r.Context(), w)
 		return
 	}
 
 	if initialTokenResp.Scope != scope {
 		slog.Error("did not receive correct scopes from token request")
-		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server errror").Render(r.Context(), w)
 		return
 	}
 
@@ -245,7 +241,7 @@ func (s *Server) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 	session, err := s.sessionStore.Get(r, "some-session")
 	if err != nil {
 		slog.Error("getting session", "error", err)
-		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server error").Render(r.Context(), w)
 		return
 	}
 	session.Values = map[interface{}]interface{}{}
@@ -258,7 +254,7 @@ func (s *Server) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 	err = session.Save(r, w)
 	if err != nil {
 		slog.Error("save session", "error", err)
-		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		_ = frontend.Login("", "internal server errror").Render(r.Context(), w)
 		return
 	}
 

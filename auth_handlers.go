@@ -20,7 +20,7 @@ func (s *Server) authMiddleware(next func(http.ResponseWriter, *http.Request)) f
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, ok := s.getDidFromSession(r)
 		if !ok {
-			_ = frontend.LoginForm("", "").Render(r.Context(), w)
+			_ = frontend.Login("", "").Render(r.Context(), w)
 			return
 		}
 

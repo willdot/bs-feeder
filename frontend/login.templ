@@ -1,18 +1,11 @@
 package frontend
 
-templ Hello() {
-	@Base()
-	hello
-}
-
 templ Login(handle, errorMsg string) {
 	@Base()
 	@LoginForm("", "")
 }
 
 templ LoginForm(handle, errorMsg string) {
-	// TODO: sort this shit out
-	@Base()
 	<form class="h-screen flex items-center justify-center" id="login-form" hx-swap="outerHTML" hx-post="/login" hx-ext="json-enc">
 		<div class="w-full max-w-sm">
 			<div class="md:flex md:items-center mb-6">

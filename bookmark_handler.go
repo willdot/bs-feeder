@@ -20,7 +20,7 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 	usersDid, ok := s.getDidFromSession(r)
 	if !ok {
 		slog.Warn("did not found in session")
-		_ = frontend.LoginForm("", "").Render(r.Context(), w)
+		_ = frontend.Login("", "").Render(r.Context(), w)
 		return
 	}
 
@@ -118,7 +118,7 @@ func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 	usersDid, ok := s.getDidFromSession(r)
 	if !ok {
 		slog.Warn("did not found in session")
-		_ = frontend.LoginForm("", "").Render(r.Context(), w)
+		_ = frontend.Login("", "").Render(r.Context(), w)
 		return
 	}
 
@@ -152,7 +152,7 @@ func (s *Server) HandleGetBookmarks(w http.ResponseWriter, r *http.Request) {
 	usersDid, ok := s.getDidFromSession(r)
 	if !ok {
 		slog.Warn("did not found in session")
-		_ = frontend.LoginForm("", "").Render(r.Context(), w)
+		_ = frontend.Login("", "").Render(r.Context(), w)
 		return
 	}
 
