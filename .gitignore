@@ -5,3 +5,4 @@ bskyfeedgen
 /tmp/
 
 .DS_Store
+*_templ.txt
