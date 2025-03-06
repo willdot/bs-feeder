@@ -91,7 +91,7 @@ func Something(name, email string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"relative flex justify-center overflow-hidden bg-gray-50 py-6 sm:py-12\"><div class=\"flex-1 mx-auto w-full max-w-md bg-white px-6 pt-6 pb-6 shadow-xl ring-1 ring-gray-900/5 sm:rounded-xl sm:px-8\"><div class=\"w-full\"><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your username is</h1><p class=\"mt-2 text-gray-500\">")
+		templ_7745c5c3_Err = templ.WriteWatchModeString(templ_7745c5c3_Buffer, 1)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -104,7 +104,7 @@ func Something(name, email string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</p></div><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your email is</h1><p class=\"mt-2 text-gray-500\">")
+		templ_7745c5c3_Err = templ.WriteWatchModeString(templ_7745c5c3_Buffer, 2)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -117,7 +117,7 @@ func Something(name, email string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</p></div></div></div><div class=\"flex-1 mx-auto w-full max-w-md bg-white px-6 pt-6 pb-6 shadow-xl ring-1 ring-gray-900/5 sm:rounded-xl sm:px-8\"><div class=\"w-full\"><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your username is</h1><p class=\"mt-2 text-gray-500\">")
+		templ_7745c5c3_Err = templ.WriteWatchModeString(templ_7745c5c3_Buffer, 3)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -130,7 +130,7 @@ func Something(name, email string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</p></div><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your email is</h1><p class=\"mt-2 text-gray-500\">")
+		templ_7745c5c3_Err = templ.WriteWatchModeString(templ_7745c5c3_Buffer, 4)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -143,7 +143,7 @@ func Something(name, email string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</p></div></div></div><div class=\"flex-1 mx-auto w-full max-w-md bg-white px-6 pt-6 pb-6 shadow-xl ring-1 ring-gray-900/5 sm:rounded-xl sm:px-8\"><div class=\"w-full\"><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your username is</h1><p class=\"mt-2 text-gray-500\">")
+		templ_7745c5c3_Err = templ.WriteWatchModeString(templ_7745c5c3_Buffer, 5)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -156,7 +156,7 @@ func Something(name, email string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</p></div><div class=\"text-center\"><h1 class=\"text-3xl font-semibold text-gray-900\">Your email is</h1><p class=\"mt-2 text-gray-500\">")
+		templ_7745c5c3_Err = templ.WriteWatchModeString(templ_7745c5c3_Buffer, 6)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -169,7 +169,7 @@ func Something(name, email string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</p></div></div></div></div>")
+		templ_7745c5c3_Err = templ.WriteWatchModeString(templ_7745c5c3_Buffer, 7)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

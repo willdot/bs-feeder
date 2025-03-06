@@ -26,6 +26,11 @@ type Feeder interface {
 	GetFeed(ctx context.Context, userDID, feed, cursor string, limit int) (FeedReponse, error)
 }
 
+type Store interface {
+	BookmarkStore
+	OauthRequestStore
+}
+
 type BookmarkStore interface {
 	CreateBookmark(postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content string) error
 	GetBookmarksForUser(userDID string) ([]store.Bookmark, error)
@@ -34,16 +39,23 @@ type BookmarkStore interface {
 	DeleteFeedPostsForBookmarkedPostURIandUserDID(subscribedPostURI, userDID string) error
 }
 
+type OauthRequestStore interface {
+	CreateOauthRequest(request store.OauthRequest) error
+	GetOauthRequest(state string) (store.OauthRequest, error)
+	DeleteOauthRequest(state string) error
+}
+
 type Server struct {
-	httpsrv       *http.Server
-	feeder        Feeder
-	feedHost      string
-	feedDidBase   string
-	bookmarkStore BookmarkStore
-	xrpcClient    *xrpc.Client
-	jwks          *JWKS
-	oauthClient   *oauth.Client
-	sessionStore  *sessions.CookieStore
+	httpsrv           *http.Server
+	feeder            Feeder
+	feedHost          string
+	feedDidBase       string
+	bookmarkStore     BookmarkStore
+	oauthRequestStore OauthRequestStore
+	xrpcClient        *xrpc.Client
+	jwks              *JWKS
+	oauthClient       *oauth.Client
+	sessionStore      *sessions.CookieStore
 }
 
 type JWKS struct {
@@ -51,7 +63,7 @@ type JWKS struct {
 	private jwk.Key
 }
 
-func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkStore BookmarkStore) (*Server, error) {
+func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, store Store) (*Server, error) {
 	jwks, err := getJWKS()
 	if err != nil {
 		return nil, fmt.Errorf("create public JWKS: %w", err)
@@ -65,13 +77,14 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 	sessionStore := sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
 
 	srv := &Server{
-		feeder:        feeder,
-		feedHost:      feedHost,
-		feedDidBase:   feedDidBase,
-		bookmarkStore: bookmarkStore,
-		jwks:          jwks,
-		oauthClient:   oauthClient,
-		sessionStore:  sessionStore,
+		feeder:            feeder,
+		feedHost:          feedHost,
+		feedDidBase:       feedDidBase,
+		bookmarkStore:     store,
+		oauthRequestStore: store,
+		jwks:              jwks,
+		oauthClient:       oauthClient,
+		sessionStore:      sessionStore,
 	}
 
 	mux := http.NewServeMux()
@@ -83,11 +96,9 @@ func NewServer(port int, feeder Feeder, feedHost, feedDidBase string, bookmarkSt
 	mux.HandleFunc("/jwks.json", srv.serverJwks)
 	mux.HandleFunc("/oauth-callback", srv.handleOauthCallback)
 
-	mux.HandleFunc("/test", srv.HandleTest)
-
 	mux.HandleFunc("/", srv.authMiddleware(srv.HandleGetBookmarks))
 	mux.HandleFunc("/login", srv.HandleLogin)
-	// mux.HandleFunc("/sign-out", srv.HandleSignOut)
+	mux.HandleFunc("/sign-out", srv.HandleSignOut)
 	mux.HandleFunc("GET /bookmarks", srv.authMiddleware(srv.HandleGetBookmarks))
 	mux.HandleFunc("POST /bookmarks", srv.authMiddleware(srv.HandleAddBookmark))
 	mux.HandleFunc("DELETE /bookmarks/{rkey}", srv.authMiddleware(srv.HandleDeleteBookmark))
@@ -124,18 +135,6 @@ var cssFile []byte
 func serveCSS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
 	_, _ = w.Write(cssFile)
-}
-
-func getUsersDidFromRequestCookie(r *http.Request) (string, error) {
-	didCookie, err := r.Cookie(didCookieName)
-	if err != nil {
-		return "", err
-	}
-	if didCookie == nil {
-		return "", fmt.Errorf("missing did cookie")
-	}
-
-	return didCookie.Value, nil
 }
 
 func getJWKS() (*JWKS, error) {
@@ -178,5 +177,3 @@ func createOauthClient(jwks *JWKS) (*oauth.Client, error) {
 		RedirectUri: fmt.Sprintf("%s/oauth-callback", serverBase),
 	})
 }
-
-//did:plc:dadhhalkfcq3gucaq25hjqon

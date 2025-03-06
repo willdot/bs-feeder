@@ -14,6 +14,7 @@ import (
 	oauth "github.com/haileyok/atproto-oauth-golang"
 	oauthhelpers "github.com/haileyok/atproto-oauth-golang/helpers"
 	"github.com/willdot/bskyfeedgen/frontend"
+	"github.com/willdot/bskyfeedgen/store"
 )
 
 const (
@@ -27,12 +28,9 @@ func (s *Server) serverJwks(w http.ResponseWriter, r *http.Request) {
 
 func serveClientMetadata(w http.ResponseWriter, r *http.Request) {
 	metadata := map[string]any{
-		"client_id":   fmt.Sprintf("%s/client-metadata.json", serverBase),
-		"client_name": "BS Feeder",
-		"client_uri":  serverBase,
-		// "logo_uri":                        fmt.Sprintf("%s/logo.png", serverUrlRoot),
-		// "tos_uri":                         fmt.Sprintf("%s/tos", serverUrlRoot),
-		// "policy_url":                      fmt.Sprintf("%s/policy", serverUrlRoot),
+		"client_id":                       fmt.Sprintf("%s/client-metadata.json", serverBase),
+		"client_name":                     "BS Feeder",
+		"client_uri":                      serverBase,
 		"redirect_uris":                   []string{fmt.Sprintf("%s/oauth-callback", serverBase)},
 		"grant_types":                     []string{"authorization_code", "refresh_token"},
 		"response_types":                  []string{"code"},
@@ -54,43 +52,6 @@ func serveClientMetadata(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(b)
 }
 
-func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
-	resState := r.FormValue("state")
-	resIss := r.FormValue("iss")
-	resCode := r.FormValue("code")
-
-	slog.Info("callback", "res state", resState, "res iss", resIss, "res code", resCode)
-
-	session, err := s.sessionStore.Get(r, "some-session")
-	if err != nil {
-		slog.Error("getting session", "error", err)
-		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
-		return
-	}
-
-	did := session.Values["oauth_did"].(string)
-	slog.Info(did)
-	// w.Header().Add("HX-Redirect", "/test")
-	// http.Redirect(w, r, "/test", http.StatusOK)
-	frontend.Home().Render(r.Context(), w)
-}
-
-func (s *Server) HandleTest(w http.ResponseWriter, r *http.Request) {
-	session, err := s.sessionStore.Get(r, "some-session")
-	if err != nil {
-		slog.Error("getting session", "error", err)
-		return
-	}
-
-	did, ok := session.Values["oauth_did"].(string)
-	if !ok {
-		slog.Error("couldn't find oauth_did in session")
-		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
-		return
-	}
-	slog.Info(did)
-}
-
 func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -107,9 +68,48 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	parResp, meta, err := s.parseLoginRequest(r.Context(), loginReq)
+	usersDID, err := resolveHandle(loginReq.Handle)
+	if err != nil {
+		slog.Error("resolve users handle", "error", err)
+		_ = frontend.LoginForm("", "bad request").Render(r.Context(), w)
+		return
+	}
+
+	slog.Info("users did", "did", usersDID)
+
+	parResp, meta, err := s.parseLoginRequest(r.Context(), usersDID, loginReq.Handle)
 	if err != nil {
 		slog.Error("handle login request", "error", err)
+		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		return
+	}
+
+	dpopPrivateKey, err := oauthhelpers.GenerateKey(nil)
+	if err != nil {
+		slog.Error("generate key", "error", err)
+		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		return
+	}
+
+	dpopPrivateKeyJson, err := json.Marshal(dpopPrivateKey)
+	if err != nil {
+		slog.Error("marshal key", "error", err)
+		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		return
+	}
+
+	oauthRequst := store.OauthRequest{
+		AuthserverIss:       meta.Issuer,
+		State:               parResp.State,
+		Did:                 usersDID,
+		PkceVerifier:        parResp.PkceVerifier,
+		DpopAuthserverNonce: parResp.DpopAuthserverNonce,
+		DpopPrivateJwk:      string(dpopPrivateKeyJson),
+	}
+	err = s.oauthRequestStore.CreateOauthRequest(oauthRequst)
+	if err != nil {
+		// TODO: catch already exists
+		slog.Error("create oauth request in store", "error", err)
 		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
 		return
 	}
@@ -119,7 +119,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	// ignore error here as it only returns an error for decoding an existing session but it will always return a session anyway which
 	// is what we want
-	session, _ := s.sessionStore.Get(r, "some-session")
+	session, _ := s.sessionStore.Get(r, "oauth-session")
 	session.Values = map[interface{}]interface{}{}
 
 	session.Options = &sessions.Options{
@@ -129,8 +129,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session.Values["oauth_state"] = parResp.State
-	//TODO: get did from handle
-	session.Values["oauth_did"] = "did:plc:dadhhalkfcq3gucaq25hjqon"
+	session.Values["oauth_did"] = usersDID
 
 	err = session.Save(r, w)
 	if err != nil {
@@ -143,9 +142,8 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, u.String(), http.StatusOK)
 }
 
-func (s *Server) parseLoginRequest(ctx context.Context, req loginRequest) (*oauth.SendParAuthResponse, *oauth.OauthAuthorizationMetadata, error) {
-	//TODO: get did from handle
-	service, err := resolveService(ctx, "did:plc:dadhhalkfcq3gucaq25hjqon")
+func (s *Server) parseLoginRequest(ctx context.Context, did, handle string) (*oauth.SendParAuthResponse, *oauth.OauthAuthorizationMetadata, error) {
+	service, err := resolveService(ctx, did)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -165,16 +163,108 @@ func (s *Server) parseLoginRequest(ctx context.Context, req loginRequest) (*oaut
 		return nil, nil, err
 	}
 
-	// dpopPrivateKeyJson, err := json.Marshal(dpopPrivateKey)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	resp, err := s.oauthClient.SendParAuthRequest(ctx, authserver, meta, req.Handle, scope, dpopPrivateKey)
+	resp, err := s.oauthClient.SendParAuthRequest(ctx, authserver, meta, handle, scope, dpopPrivateKey)
 	if err != nil {
 		return nil, nil, err
 	}
 	return resp, meta, nil
+}
+
+func (s *Server) handleOauthCallback(w http.ResponseWriter, r *http.Request) {
+	resState := r.FormValue("state")
+	resIss := r.FormValue("iss")
+	resCode := r.FormValue("code")
+
+	session, err := s.sessionStore.Get(r, "oauth-session")
+	if err != nil {
+		slog.Error("getting session", "error", err)
+		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
+		return
+	}
+
+	sessionState := session.Values["oauth_state"]
+
+	if resState == "" || resIss == "" || resCode == "" {
+		slog.Error("request missing needed parameters")
+		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
+		return
+	}
+
+	if resState != sessionState {
+		slog.Error("session state does not match response state")
+		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
+		return
+	}
+
+	oauthRequest, err := s.oauthRequestStore.GetOauthRequest(fmt.Sprintf("%s", sessionState))
+	if err != nil {
+		slog.Error("get oauth request from store", "error", err)
+		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		return
+	}
+
+	err = s.oauthRequestStore.DeleteOauthRequest(fmt.Sprintf("%s", sessionState))
+	if err != nil {
+		slog.Error("delete oauth request from store", "error", err)
+		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		return
+	}
+
+	jwk, err := oauthhelpers.ParseJWKFromBytes([]byte(oauthRequest.DpopPrivateJwk))
+	if err != nil {
+		slog.Error("parse JWK", "error", err)
+		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		return
+	}
+
+	initialTokenResp, err := s.oauthClient.InitialTokenRequest(r.Context(), resCode, resIss, oauthRequest.PkceVerifier, oauthRequest.DpopAuthserverNonce, jwk)
+	if err != nil {
+		slog.Error("getting token from request", "error", err)
+		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
+		return
+	}
+
+	if initialTokenResp.Scope != scope {
+		slog.Error("did not receive correct scopes from token request")
+		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		return
+	}
+
+	session.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7,
+		HttpOnly: true,
+	}
+
+	// make sure the session is empty
+	session.Values = map[interface{}]interface{}{}
+	session.Values["did"] = oauthRequest.Did
+
+	frontend.Home().Render(r.Context(), w)
+}
+
+func (s *Server) HandleSignOut(w http.ResponseWriter, r *http.Request) {
+	session, err := s.sessionStore.Get(r, "some-session")
+	if err != nil {
+		slog.Error("getting session", "error", err)
+		_ = frontend.LoginForm("", "internal server error").Render(r.Context(), w)
+		return
+	}
+	session.Values = map[interface{}]interface{}{}
+	session.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	}
+
+	err = session.Save(r, w)
+	if err != nil {
+		slog.Error("save session", "error", err)
+		_ = frontend.LoginForm("", "internal server errror").Render(r.Context(), w)
+		return
+	}
+
+	_ = frontend.Login("", "").Render(r.Context(), w)
 }
 
 func resolveService(ctx context.Context, did string) (string, error) {

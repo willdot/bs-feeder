@@ -42,6 +42,11 @@ func New(dbPath string) (*Store, error) {
 		return nil, fmt.Errorf("creating bookmarks table: %w", err)
 	}
 
+	err = createOauthRequestsTable(db)
+	if err != nil {
+		return nil, fmt.Errorf("creating oauth requests table: %w", err)
+	}
+
 	return &Store{db: db}, nil
 }
 

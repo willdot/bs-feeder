@@ -17,10 +17,10 @@ import (
 )
 
 func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
-	usersDid, err := getUsersDidFromRequestCookie(r)
-	if err != nil {
-		slog.Error("getting users did from request", "error", err)
-		_ = frontend.Login("", "").Render(r.Context(), w)
+	usersDid, ok := s.getDidFromSession(r)
+	if !ok {
+		slog.Warn("did not found in session")
+		_ = frontend.LoginForm("", "").Render(r.Context(), w)
 		return
 	}
 
@@ -115,10 +115,10 @@ func convertPostURIToAtValidURI(input string) (string, error) {
 func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 	rKey := r.PathValue("rkey")
 
-	usersDid, err := getUsersDidFromRequestCookie(r)
-	if err != nil {
-		slog.Error("getting users did from request", "error", err)
-		_ = frontend.Login("", "").Render(r.Context(), w)
+	usersDid, ok := s.getDidFromSession(r)
+	if !ok {
+		slog.Warn("did not found in session")
+		_ = frontend.LoginForm("", "").Render(r.Context(), w)
 		return
 	}
 
@@ -149,10 +149,10 @@ func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleGetBookmarks(w http.ResponseWriter, r *http.Request) {
-	usersDid, err := getUsersDidFromRequestCookie(r)
-	if err != nil {
-		slog.Error("getting users did from request", "error", err)
-		_ = frontend.Login("", "").Render(r.Context(), w)
+	usersDid, ok := s.getDidFromSession(r)
+	if !ok {
+		slog.Warn("did not found in session")
+		_ = frontend.LoginForm("", "").Render(r.Context(), w)
 		return
 	}
 
