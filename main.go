@@ -83,6 +83,14 @@ func main() {
 		go consumeLoop(ctx, store)
 	}
 
+	dmService, err := NewDmService(store, time.Second*30)
+	if err != nil {
+		slog.Error("create new dm service", "error", err)
+		_ = bugsnag.Notify(err)
+		return
+	}
+	go dmService.Start(ctx)
+
 	server, err := NewServer(443, feeder, feedHost, feedDidBase, store)
 	if err != nil {
 		slog.Error("create new server", "error", err)

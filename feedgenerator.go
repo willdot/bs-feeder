@@ -11,6 +11,7 @@ import (
 
 type feedStore interface {
 	GetUsersFeed(usersDID string, cursor int64, limit int) ([]store.FeedPost, error)
+	AddFeedPost(feedPost store.FeedPost) error
 }
 
 type FeedGenerator struct {
