@@ -83,7 +83,7 @@ func main() {
 		go consumeLoop(ctx, store)
 	}
 
-	dmService, err := NewDmService(store, time.Second)
+	dmService, err := NewDmService(store, time.Second*30)
 	if err != nil {
 		slog.Error("create new dm service", "error", err)
 		_ = bugsnag.Notify(err)
