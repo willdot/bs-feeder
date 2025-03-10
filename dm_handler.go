@@ -217,19 +217,19 @@ func (d *DmService) handleMessage(msg Message) {
 	rkey := getRKeyFromATURI(msg.Embed.Record.URI)
 	msgAction := strings.ToLower(msg.Text)
 
+	var err error
+
 	switch {
 	case strings.Contains(msgAction, "delete"):
-		err := d.handleDeleteBookmark(msg)
-		if err != nil {
-			// TODO: perhaps continue here so that we don't mark the message as read so it can be tried again?
-			slog.Error("failed to handle delete bookmark message", "error", err, "rkey", rkey, "sender", msg.Sender.Did)
-		}
+		err = d.handleDeleteBookmark(msg)
 	default:
-		err := d.handleCreateBookmark(msg)
-		if err != nil {
-			// TODO: perhaps continue here so that we don't mark the message as read so it can be tried again?
-			slog.Error("failed to handle create bookmark message", "error", err, "rkey", rkey, "sender", msg.Sender.Did)
-		}
+		err = d.handleCreateBookmark(msg)
+	}
+
+	if err != nil {
+		// TODO: perhaps continue here so that we don't mark the message as read so it can be tried again? Or perhaps send a message
+		// too the user?
+		slog.Error("failed to handle bookmark message", "error", err, "rkey", rkey, "sender", msg.Sender.Did)
 	}
 }
 
@@ -253,7 +253,12 @@ func (d *DmService) handleCreateBookmark(msg Message) error {
 func (d *DmService) handleDeleteBookmark(msg Message) error {
 	rkey := getRKeyFromATURI(msg.Embed.Record.URI)
 
-	err := d.bookmarkStore.DeleteBookmark(rkey, msg.Sender.Did)
+	err := d.bookmarkStore.DeleteFeedPostsForBookmarkedPostURIandUserDID(msg.Embed.Record.URI, msg.Sender.Did)
+	if err != nil {
+		return fmt.Errorf("failed to delete feed posts of replies to bookmark for user: %w", err)
+	}
+
+	err = d.bookmarkStore.DeleteBookmark(rkey, msg.Sender.Did)
 	if err != nil {
 		return fmt.Errorf("failed to delete bookmark: %w", err)
 	}
