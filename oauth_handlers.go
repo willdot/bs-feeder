@@ -30,7 +30,7 @@ func (s *Server) serverJwks(w http.ResponseWriter, r *http.Request) {
 func (s *Server) serveClientMetadata(w http.ResponseWriter, r *http.Request) {
 	metadata := map[string]any{
 		"client_id":                       fmt.Sprintf("https://%s/client-metadata.json", s.feedHost),
-		"client_name":                     "BS Feeder",
+		"client_name":                     "Bsky-bookmark",
 		"client_uri":                      fmt.Sprintf("https://%s", s.feedHost),
 		"redirect_uris":                   []string{fmt.Sprintf("https://%s/oauth-callback", s.feedHost)},
 		"grant_types":                     []string{"authorization_code", "refresh_token"},
