@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/willdot/bskyfeedgen/store"
 )
 
 const (
@@ -74,7 +73,14 @@ type MessageEmbed struct {
 }
 
 type MessageEmbedRecord struct {
-	URI string `json:"uri"`
+	URI    string                   `json:"uri"`
+	Author MessageEmbedRecordAuthor `json:"author"`
+	Value  string                   `json:"value"`
+}
+
+type MessageEmbedRecordAuthor struct {
+	Did    string `json:"did"`
+	Handle string `json:"handle"`
 }
 
 type MessageSender struct {
@@ -92,10 +98,10 @@ type DmService struct {
 	auth          auth
 	timerDuration time.Duration
 	pdsURL        string
-	feedStore     feedStore
+	bookmarkStore BookmarkStore
 }
 
-func NewDmService(feedStore feedStore, timerDuration time.Duration) (*DmService, error) {
+func NewDmService(bookmarkStore BookmarkStore, timerDuration time.Duration) (*DmService, error) {
 	httpClient := http.Client{
 		Timeout: httpClientTimeoutDuration,
 		Transport: &http.Transport{
@@ -115,7 +121,7 @@ func NewDmService(feedStore feedStore, timerDuration time.Duration) (*DmService,
 		},
 		timerDuration: timerDuration,
 		pdsURL:        pdsURL,
-		feedStore:     feedStore,
+		bookmarkStore: bookmarkStore,
 	}
 
 	auth, err := service.Authenicate()
@@ -194,16 +200,16 @@ func (d *DmService) HandleMessageTimer(ctx context.Context) error {
 				continue
 			}
 			slog.Info("unread message", "message", msg.Embed.Record.URI)
-			feedPost := store.FeedPost{
-				ReplyURI:  msg.Embed.Record.URI,
-				UserDID:   msg.Sender.Did,
-				CreatedAt: time.Now().UnixMilli(),
-			}
-			err = d.feedStore.AddFeedPost(feedPost)
+
+			rkey := getRKeyFromATURI(msg.Embed.Record.URI)
+
+			err = d.bookmarkStore.CreateBookmark(rkey, "", msg.Embed.Record.URI, msg.Embed.Record.Author.Did, msg.Embed.Record.Author.Handle, msg.Sender.Did, msg.Embed.Record.Value)
 			if err != nil {
-				slog.Error("adding feed post from message", "error", err)
-				continue
+				slog.Error("creating bookmark", "error", err)
+				// TODO: maybe continue so it can be tried again later but for now just continue to mark
+				// message as read and keep going
 			}
+
 			err = d.MarkMessageRead(msg.ID, convo.ID)
 			if err != nil {
 				slog.Error("marking message read", "error", err)
@@ -260,7 +266,7 @@ func (d *DmService) MarkMessageRead(messageID, convoID string) error {
 
 	bodyB, err := json.Marshal(bodyReq)
 	if err != nil {
-		fmt.Errorf("marshal update message request body: %w", err)
+		return fmt.Errorf("marshal update message request body: %w", err)
 	}
 
 	r := bytes.NewReader(bodyB)

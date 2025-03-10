@@ -38,8 +38,7 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uriSplit := strings.Split(atPostURI, "/")
-	rkey := uriSplit[len(uriSplit)-1]
+	rkey := getRKeyFromATURI(atPostURI)
 
 	postResp, err := bsky.FeedGetPosts(r.Context(), s.xrpcClient, []string{atPostURI})
 	if err != nil {
@@ -163,6 +162,8 @@ func (s *Server) HandleGetBookmarks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: for each bookmark if there isn't a post URI (public facing not AT://) then create one
+
 	resp := make([]store.Bookmark, 0, len(bookmarks))
 	resp = append(resp, bookmarks...)
 
@@ -198,4 +199,9 @@ func resolveHandle(handle string) (string, error) {
 	}
 
 	return resDid.Did, nil
+}
+
+func getRKeyFromATURI(uri string) string {
+	uriSplit := strings.Split(uri, "/")
+	return uriSplit[len(uriSplit)-1]
 }
