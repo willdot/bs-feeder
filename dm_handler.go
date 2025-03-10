@@ -232,6 +232,9 @@ func (d *DmService) handleMessage(msg Message) {
 
 func (d *DmService) handleCreateBookmark(msg Message) error {
 	content := msg.Embed.Record.Value.Text
+	if content == "" {
+		content = "post contained no text"
+	}
 	if len(content) > 75 {
 		content = fmt.Sprintf("%s...", content[:75])
 	}

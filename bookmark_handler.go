@@ -68,6 +68,9 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	content := postRecord.Text
+	if content == "" {
+		content = "post contained no text"
+	}
 	if len(content) > 75 {
 		content = fmt.Sprintf("%s...", content[:75])
 	}
