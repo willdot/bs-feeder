@@ -32,9 +32,9 @@ func New(dbPath string) (*Store, error) {
 		return nil, fmt.Errorf("ping db: %w", err)
 	}
 
-	err = createFeedTable(db)
+	err = createRepliesTable(db)
 	if err != nil {
-		return nil, fmt.Errorf("creating feed table: %w", err)
+		return nil, fmt.Errorf("creating replies table: %w", err)
 	}
 
 	err = createBookmarksTable(db)

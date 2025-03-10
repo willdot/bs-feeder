@@ -28,11 +28,11 @@ type Store interface {
 }
 
 type BookmarkStore interface {
-	CreateBookmark(postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content string) error
+	CreateBookmark(postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content string, createdAt int64) error
 	GetBookmarksForUser(userDID string) ([]store.Bookmark, error)
 	DeleteBookmark(postRKey, userDID string) error
 	GetBookmarkByRKeyForUser(rkey, userDID string) (*store.Bookmark, error)
-	DeleteFeedPostsForBookmarkedPostURIandUserDID(subscribedPostURI, userDID string) error
+	DeleteRepliedPostsForBookmarkedPostURIandUserDID(subscribedPostURI, userDID string) error
 }
 
 type OauthRequestStore interface {
