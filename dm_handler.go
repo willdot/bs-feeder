@@ -21,11 +21,6 @@ const (
 	baseBskyURL                      = "https://bsky.social/xrpc"
 )
 
-var (
-	errUnauthorized = fmt.Errorf("unauthorized")
-	errExpiredToken = fmt.Errorf("expired token")
-)
-
 type auth struct {
 	AccessJwt  string `json:"accessJwt"`
 	RefershJWT string `json:"refreshJwt"`
@@ -140,6 +135,8 @@ func NewDmService(bookmarkStore BookmarkStore, timerDuration time.Duration) (*Dm
 }
 
 func (d *DmService) Start(ctx context.Context) {
+	go d.RefreshTask(ctx)
+
 	timer := time.NewTimer(d.timerDuration)
 	defer timer.Stop()
 
