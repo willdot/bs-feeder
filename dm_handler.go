@@ -167,7 +167,6 @@ func (d *DmService) HandleMessageTimer(ctx context.Context) error {
 	// TODO: handle the cursor pagination
 
 	for _, convo := range convoResp.Convos {
-		slog.Info("got convo", "convo", convo)
 		if convo.UnreadCount == 0 {
 			continue
 		}
@@ -179,7 +178,6 @@ func (d *DmService) HandleMessageTimer(ctx context.Context) error {
 		}
 
 		unreadCount := convo.UnreadCount
-		slog.Info("unread count", "is", unreadCount)
 		unreadMessages := make([]Message, 0, convo.UnreadCount)
 		// TODO: handle cursor pagination
 		for _, msg := range messageResp.Messages {
@@ -189,7 +187,6 @@ func (d *DmService) HandleMessageTimer(ctx context.Context) error {
 				continue
 			}
 
-			slog.Info("message from someone else", "message", msg.Text)
 			unreadMessages = append(unreadMessages, msg)
 			unreadCount--
 			if unreadCount == 0 {
@@ -197,30 +194,8 @@ func (d *DmService) HandleMessageTimer(ctx context.Context) error {
 			}
 		}
 
-		// TODO: store messages that have been read and handled so they aren't processed again
-
-		// for each message verify it's a valid link to a post before storing it
 		for _, msg := range unreadMessages {
-			if msg.Embed.Record.URI == "" {
-				continue
-			}
-			slog.Info("unread message", "message", msg.Embed.Record.URI)
-
-			rkey := getRKeyFromATURI(msg.Embed.Record.URI)
-
-			content := msg.Embed.Record.Value.Text
-			if len(content) > 75 {
-				content = fmt.Sprintf("%s...", content[:75])
-			}
-
-			publicURI := getPublicPostURIFromATURI(msg.Embed.Record.URI, msg.Embed.Record.Author.Handle)
-
-			err = d.bookmarkStore.CreateBookmark(rkey, publicURI, msg.Embed.Record.URI, msg.Embed.Record.Author.Did, msg.Embed.Record.Author.Handle, msg.Sender.Did, content)
-			if err != nil {
-				slog.Error("creating bookmark", "error", err)
-				// TODO: maybe continue so it can be tried again later but for now just continue to mark
-				// message as read and keep going
-			}
+			d.handleMessage(msg)
 
 			err = d.MarkMessageRead(msg.ID, convo.ID)
 			if err != nil {
@@ -228,6 +203,59 @@ func (d *DmService) HandleMessageTimer(ctx context.Context) error {
 				continue
 			}
 		}
+	}
+
+	return nil
+}
+
+func (d *DmService) handleMessage(msg Message) {
+	// for now, ignore messages that don't have linked posts in them
+	if msg.Embed.Record.URI == "" {
+		return
+	}
+
+	rkey := getRKeyFromATURI(msg.Embed.Record.URI)
+	msgAction := strings.ToLower(msg.Text)
+
+	switch {
+	case strings.Contains(msgAction, "delete"):
+		err := d.handleDeleteBookmark(msg)
+		if err != nil {
+			// TODO: perhaps continue here so that we don't mark the message as read so it can be tried again?
+			slog.Error("failed to handle delete bookmark message", "error", err, "rkey", rkey, "sender", msg.Sender.Did)
+		}
+	default:
+		err := d.handleCreateBookmark(msg)
+		if err != nil {
+			// TODO: perhaps continue here so that we don't mark the message as read so it can be tried again?
+			slog.Error("failed to handle create bookmark message", "error", err, "rkey", rkey, "sender", msg.Sender.Did)
+		}
+	}
+}
+
+func (d *DmService) handleCreateBookmark(msg Message) error {
+	content := msg.Embed.Record.Value.Text
+	if len(content) > 75 {
+		content = fmt.Sprintf("%s...", content[:75])
+	}
+
+	publicURI := getPublicPostURIFromATURI(msg.Embed.Record.URI, msg.Embed.Record.Author.Handle)
+
+	rkey := getRKeyFromATURI(msg.Embed.Record.URI)
+
+	err := d.bookmarkStore.CreateBookmark(rkey, publicURI, msg.Embed.Record.URI, msg.Embed.Record.Author.Did, msg.Embed.Record.Author.Handle, msg.Sender.Did, content)
+	if err != nil {
+		return fmt.Errorf("creating bookmark: %w", err)
+	}
+	return nil
+}
+
+func (d *DmService) handleDeleteBookmark(msg Message) error {
+	rkey := getRKeyFromATURI(msg.Embed.Record.URI)
+
+	err := d.bookmarkStore.DeleteBookmark(rkey, msg.Sender.Did)
+	if err != nil {
+		return fmt.Errorf("failed to delete bookmark: %w", err)
 	}
 
 	return nil
