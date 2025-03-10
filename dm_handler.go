@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -75,12 +76,16 @@ type MessageEmbed struct {
 type MessageEmbedRecord struct {
 	URI    string                   `json:"uri"`
 	Author MessageEmbedRecordAuthor `json:"author"`
-	Value  any                      `json:"value"`
+	Value  MessageEmbedPost         `json:"value"`
 }
 
 type MessageEmbedRecordAuthor struct {
 	Did    string `json:"did"`
 	Handle string `json:"handle"`
+}
+
+type MessageEmbedPost struct {
+	Text string `json:"text"`
 }
 
 type MessageSender struct {
@@ -203,11 +208,14 @@ func (d *DmService) HandleMessageTimer(ctx context.Context) error {
 
 			rkey := getRKeyFromATURI(msg.Embed.Record.URI)
 
-			// msg.Embed.Record.Value
-			content := "hello"
-			slog.Info("record value was", "val", msg.Embed.Record.Value)
+			content := msg.Embed.Record.Value.Text
+			if len(content) > 75 {
+				content = fmt.Sprintf("%s...", content[:75])
+			}
 
-			err = d.bookmarkStore.CreateBookmark(rkey, "", msg.Embed.Record.URI, msg.Embed.Record.Author.Did, msg.Embed.Record.Author.Handle, msg.Sender.Did, content)
+			publicURI := getPublicPostURIFromATURI(msg.Embed.Record.URI, msg.Embed.Record.Author.Handle)
+
+			err = d.bookmarkStore.CreateBookmark(rkey, publicURI, msg.Embed.Record.URI, msg.Embed.Record.Author.Did, msg.Embed.Record.Author.Handle, msg.Sender.Did, content)
 			if err != nil {
 				slog.Error("creating bookmark", "error", err)
 				// TODO: maybe continue so it can be tried again later but for now just continue to mark
@@ -223,6 +231,15 @@ func (d *DmService) HandleMessageTimer(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func getPublicPostURIFromATURI(atURI, authorHandle string) string {
+	atSplit := strings.Split(atURI, "app.bsky.feed.post")
+	if len(atSplit) < 2 {
+		slog.Error("can't get public post URI from AT uri", "at uri", atURI)
+		return ""
+	}
+	return fmt.Sprintf("https://bsky.app/profile/%s/post%s", authorHandle, atSplit[1])
 }
 
 func (d *DmService) GetUnreadMessages() (ListConvosResponse, error) {

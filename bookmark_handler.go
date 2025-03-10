@@ -162,8 +162,6 @@ func (s *Server) HandleGetBookmarks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: for each bookmark if there isn't a post URI (public facing not AT://) then create one
-
 	resp := make([]store.Bookmark, 0, len(bookmarks))
 	resp = append(resp, bookmarks...)
 
