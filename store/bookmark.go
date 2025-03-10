@@ -83,7 +83,7 @@ func (s *Store) GetBookmarksForUser(userDID string) ([]Bookmark, error) {
 }
 
 func (s *Store) GetBookmarksForUserWithPaging(userDID string, cursor int64, limit int) ([]Bookmark, error) {
-	sql := `SELECT id, postRKey, postURI, postATURI, authorDID, authorHandle,  userDID, content, createdA FROM bookmarks
+	sql := `SELECT id, postRKey, postURI, postATURI, authorDID, authorHandle,  userDID, content, createdAt FROM bookmarks
 			WHERE userDID = ? AND createdAt < ?
 			ORDER BY createdAt DESC LIMIT ?;`
 	rows, err := s.db.Query(sql, userDID, cursor, limit)
