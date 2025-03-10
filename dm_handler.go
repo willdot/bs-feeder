@@ -203,7 +203,10 @@ func (d *DmService) HandleMessageTimer(ctx context.Context) error {
 
 			rkey := getRKeyFromATURI(msg.Embed.Record.URI)
 
-			err = d.bookmarkStore.CreateBookmark(rkey, "", msg.Embed.Record.URI, msg.Embed.Record.Author.Did, msg.Embed.Record.Author.Handle, msg.Sender.Did, msg.Embed.Record.Value)
+			// msg.Embed.Record.Value
+			content := "hello"
+
+			err = d.bookmarkStore.CreateBookmark(rkey, "", msg.Embed.Record.URI, msg.Embed.Record.Author.Did, msg.Embed.Record.Author.Handle, msg.Sender.Did, content)
 			if err != nil {
 				slog.Error("creating bookmark", "error", err)
 				// TODO: maybe continue so it can be tried again later but for now just continue to mark
