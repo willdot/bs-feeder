@@ -19,6 +19,7 @@ func createBookmarksTable(db *sql.DB) error {
 		"authorHandle" TEXT,
 		"userDID" TEXT,
 		"content" TEXT,
+		"createdAt" integer NOT NULL,
 		UNIQUE(postRKey, userDID)
 	  );`
 
