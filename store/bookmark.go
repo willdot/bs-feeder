@@ -63,7 +63,7 @@ func (s *Store) CreateBookmark(postRKey, postURI, postATURI, authorDID, authorHa
 }
 
 func (s *Store) GetBookmarksForUser(userDID string) ([]Bookmark, error) {
-	sql := "SELECT id, postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content FROM bookmarks WHERE userDID = ?;"
+	sql := "SELECT id, postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content, createdAt FROM bookmarks WHERE userDID = ?;"
 	rows, err := s.db.Query(sql, userDID)
 	if err != nil {
 		return nil, fmt.Errorf("run query to get bookmarked posts for user: %w", err)
