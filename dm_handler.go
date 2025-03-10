@@ -75,7 +75,7 @@ type MessageEmbed struct {
 type MessageEmbedRecord struct {
 	URI    string                   `json:"uri"`
 	Author MessageEmbedRecordAuthor `json:"author"`
-	Value  string                   `json:"value"`
+	Value  any                      `json:"value"`
 }
 
 type MessageEmbedRecordAuthor struct {
@@ -205,6 +205,7 @@ func (d *DmService) HandleMessageTimer(ctx context.Context) error {
 
 			// msg.Embed.Record.Value
 			content := "hello"
+			slog.Info("record value was", "val", msg.Embed.Record.Value)
 
 			err = d.bookmarkStore.CreateBookmark(rkey, "", msg.Embed.Record.URI, msg.Embed.Record.Author.Did, msg.Embed.Record.Author.Handle, msg.Sender.Did, content)
 			if err != nil {
