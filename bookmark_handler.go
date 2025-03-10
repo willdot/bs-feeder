@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/bluesky-social/indigo/api/bsky"
 	apibsky "github.com/bluesky-social/indigo/api/bsky"
@@ -75,7 +76,7 @@ func (s *Server) HandleAddBookmark(w http.ResponseWriter, r *http.Request) {
 		content = fmt.Sprintf("%s...", content[:75])
 	}
 
-	err = s.bookmarkStore.CreateBookmark(rkey, postURI, atPostURI, post.Author.Did, post.Author.Handle, usersDid, content)
+	err = s.bookmarkStore.CreateBookmark(rkey, postURI, atPostURI, post.Author.Did, post.Author.Handle, usersDid, content, time.Now().UnixMilli())
 	if err != nil {
 		if errors.Is(err, store.ErrBookmarkAlreadyExists) {
 			return
@@ -131,10 +132,10 @@ func (s *Server) HandleDeleteBookmark(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.bookmarkStore.DeleteFeedPostsForBookmarkedPostURIandUserDID(bookmark.PostATURI, usersDid)
+	err = s.bookmarkStore.DeleteRepliedPostsForBookmarkedPostURIandUserDID(bookmark.PostATURI, usersDid)
 	if err != nil {
-		slog.Error("deleting feed items for bookmark", "error", err)
-		http.Error(w, "deleting feed items for bookmark", http.StatusInternalServerError)
+		slog.Error("deleting replied posts for bookmark", "error", err)
+		http.Error(w, "deleting replied posts for bookmark", http.StatusInternalServerError)
 		return
 	}
 

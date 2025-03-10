@@ -243,7 +243,7 @@ func (d *DmService) handleCreateBookmark(msg Message) error {
 
 	rkey := getRKeyFromATURI(msg.Embed.Record.URI)
 
-	err := d.bookmarkStore.CreateBookmark(rkey, publicURI, msg.Embed.Record.URI, msg.Embed.Record.Author.Did, msg.Embed.Record.Author.Handle, msg.Sender.Did, content)
+	err := d.bookmarkStore.CreateBookmark(rkey, publicURI, msg.Embed.Record.URI, msg.Embed.Record.Author.Did, msg.Embed.Record.Author.Handle, msg.Sender.Did, content, time.Now().UnixMilli())
 	if err != nil {
 		return fmt.Errorf("creating bookmark: %w", err)
 	}
@@ -253,9 +253,9 @@ func (d *DmService) handleCreateBookmark(msg Message) error {
 func (d *DmService) handleDeleteBookmark(msg Message) error {
 	rkey := getRKeyFromATURI(msg.Embed.Record.URI)
 
-	err := d.bookmarkStore.DeleteFeedPostsForBookmarkedPostURIandUserDID(msg.Embed.Record.URI, msg.Sender.Did)
+	err := d.bookmarkStore.DeleteRepliedPostsForBookmarkedPostURIandUserDID(msg.Embed.Record.URI, msg.Sender.Did)
 	if err != nil {
-		return fmt.Errorf("failed to delete feed posts of replies to bookmark for user: %w", err)
+		return fmt.Errorf("failed to delete replied posts for bookmark for user: %w", err)
 	}
 
 	err = d.bookmarkStore.DeleteBookmark(rkey, msg.Sender.Did)

@@ -19,6 +19,7 @@ func createBookmarksTable(db *sql.DB) error {
 		"authorHandle" TEXT,
 		"userDID" TEXT,
 		"content" TEXT,
+		"createdAt" integer NOT NULL,
 		UNIQUE(postRKey, userDID)
 	  );`
 
@@ -45,11 +46,12 @@ type Bookmark struct {
 	AuthorHandle string
 	UserDID      string
 	Content      string
+	CreatedAt    int64
 }
 
-func (s *Store) CreateBookmark(postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content string) error {
-	sql := `INSERT INTO bookmarks (postRKey, postURI,postATURI, authorDID, authorHandle, userDID, content) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(postRKey, userDID) DO NOTHING;`
-	res, err := s.db.Exec(sql, postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content)
+func (s *Store) CreateBookmark(postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content string, createdAt int64) error {
+	sql := `INSERT INTO bookmarks (postRKey, postURI,postATURI, authorDID, authorHandle, userDID, content, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(postRKey, userDID) DO NOTHING;`
+	res, err := s.db.Exec(sql, postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content, createdAt)
 	if err != nil {
 		return fmt.Errorf("exec insert bookmark: %w", err)
 	}
@@ -61,7 +63,7 @@ func (s *Store) CreateBookmark(postRKey, postURI, postATURI, authorDID, authorHa
 }
 
 func (s *Store) GetBookmarksForUser(userDID string) ([]Bookmark, error) {
-	sql := "SELECT id, postRKey, postURI, postATURI, authorDID, authorHandle,  userDID, content FROM bookmarks WHERE userDID = ?;"
+	sql := "SELECT id, postRKey, postURI, postATURI, authorDID, authorHandle, userDID, content, createdAt FROM bookmarks WHERE userDID = ?;"
 	rows, err := s.db.Query(sql, userDID)
 	if err != nil {
 		return nil, fmt.Errorf("run query to get bookmarked posts for user: %w", err)
@@ -71,7 +73,29 @@ func (s *Store) GetBookmarksForUser(userDID string) ([]Bookmark, error) {
 	var results []Bookmark
 	for rows.Next() {
 		var bookmark Bookmark
-		if err := rows.Scan(&bookmark.ID, &bookmark.PostRKey, &bookmark.PostURI, &bookmark.PostATURI, &bookmark.AuthorDID, &bookmark.AuthorHandle, &bookmark.UserDID, &bookmark.Content); err != nil {
+		if err := rows.Scan(&bookmark.ID, &bookmark.PostRKey, &bookmark.PostURI, &bookmark.PostATURI, &bookmark.AuthorDID, &bookmark.AuthorHandle, &bookmark.UserDID, &bookmark.Content, &bookmark.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+
+		results = append(results, bookmark)
+	}
+	return results, nil
+}
+
+func (s *Store) GetBookmarksForUserWithPaging(userDID string, cursor int64, limit int) ([]Bookmark, error) {
+	sql := `SELECT id, postRKey, postURI, postATURI, authorDID, authorHandle,  userDID, content, createdAt FROM bookmarks
+			WHERE userDID = ? AND createdAt < ?
+			ORDER BY createdAt DESC LIMIT ?;`
+	rows, err := s.db.Query(sql, userDID, cursor, limit)
+	if err != nil {
+		return nil, fmt.Errorf("run query to get bookmarked posts for user: %w", err)
+	}
+	defer rows.Close()
+
+	var results []Bookmark
+	for rows.Next() {
+		var bookmark Bookmark
+		if err := rows.Scan(&bookmark.ID, &bookmark.PostRKey, &bookmark.PostURI, &bookmark.PostATURI, &bookmark.AuthorDID, &bookmark.AuthorHandle, &bookmark.UserDID, &bookmark.Content, &bookmark.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
 
